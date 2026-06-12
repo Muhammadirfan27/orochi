@@ -9,7 +9,7 @@ st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 # Konfigurasi API langsung
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Fungsi Waktu Jakarta
 def get_jakarta_time():
