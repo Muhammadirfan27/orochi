@@ -10,7 +10,8 @@ st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     # Menggunakan gemini-1.5-pro yang lebih stabil
-    model = genai.GenerativeModel('gemini-1.5-pro')
+  
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     st.error(f"Error konfigurasi API: {e}")
 
