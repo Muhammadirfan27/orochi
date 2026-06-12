@@ -7,7 +7,7 @@ import pytz
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
 # Ambil API Key dari Secrets Streamlit
-api_key = st.secrets.get("GEMINI_API_KEY")
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Cek apakah API Key berhasil dimuat
 if not api_key:
