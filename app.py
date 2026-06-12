@@ -10,17 +10,9 @@ st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
-    # Deteksi model otomatis agar tidak terkena error 404
-    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_methods]
-    
-    if not models:
-        st.error("Waduh, tidak ada model yang tersedia untuk API Key ini. Cek kembali akun Google AI Studio kamu.")
-        st.stop()
-        
-    # Memilih model yang tersedia
-    model_name = models[0] 
-    model = genai.GenerativeModel(model_name)
-    st.sidebar.write(f"Model aktif: {model_name}")
+    # Langsung gunakan model yang umum tersedia, ini paling stabil
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    st.sidebar.write("Model aktif: gemini-1.5-flash")
 except Exception as e:
     st.error(f"Error konfigurasi API: {e}")
     st.stop()
@@ -62,4 +54,4 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            st.error(f"Waduh Komandan, ada kendala teknis saat memproses chat: {e}")
+            st.error(f"Waduh Komandan, ada kendala teknis: {e}")
