@@ -7,8 +7,7 @@ import pytz
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
 # Konfigurasi API langsung
-# Pastikan di Secrets: GEMINI_API_KEY = "AIza..."
-# Hapus kode yang lama, ganti dengan ini:
+
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 model = genai.GenerativeModel('gemini-pro')
 
