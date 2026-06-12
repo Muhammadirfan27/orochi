@@ -2,15 +2,18 @@ import os
 from datetime import datetime
 import pytz
 from flask import Flask, request, jsonify, render_template
-from google.genai import client as genai_client
-from google.genai import types
+import google.generativeai as genai
 
 app = Flask(__name__)
 
-# Mengambil API Key secara aman dari environment variable Render
+# Mengambil API Key secara aman dari environment variable
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6L0mt6wJodEiib7qI7x7ltzWdoFICnuej6-PwjjljNgww")
 
-client = genai_client.Client(api_key=GEMINI_API_KEY)
+# Konfigurasi library Google Generative AI
+genai.configure(api_key=GEMINI_API_KEY)
+
+# Menggunakan model Gemini 1.5 Flash (karena 2.5 belum rilis umum)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
 def home():
@@ -41,13 +44,13 @@ def chat():
  5. JANGAN gunakan emotikon teks lama seperti (*^.^*) atau (o^^o).
  """
 
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=user_message,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-        ),
+    # Menjalankan generate_content dengan instruksi sistem
+    response = model.generate_content(
+        contents=[
+            {"role": "user", "parts": [{"text": system_instruction + "\n\nUser: " + user_message}]}
+        ]
     )
+    
     orochi_text = response.text
 
     return jsonify({
