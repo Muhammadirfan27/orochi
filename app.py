@@ -11,7 +11,7 @@ try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     # Menggunakan gemini-1.5-pro yang lebih stabil
   
-    model = genai.GenerativeModel('gemini-1.0-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
 except Exception as e:
     st.error(f"Error konfigurasi API: {e}")
 
