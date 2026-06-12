@@ -6,15 +6,9 @@ import pytz
 # Konfigurasi halaman
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
-# Ambil API Key dari Secrets Streamlit
+# Konfigurasi API langsung
+# Pastikan di Secrets: GEMINI_API_KEY = "AIza..."
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-
-# Cek apakah API Key berhasil dimuat
-if not api_key:
-    st.error("API Key tidak ditemukan di Secrets. Pastikan kuncinya bernama GEMINI_API_KEY")
-    st.stop()
-
-genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Fungsi Waktu Jakarta
@@ -46,10 +40,7 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        try:
-            full_prompt = system_instruction + "\nUser: " + prompt
-            response = model.generate_content(full_prompt)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat menghubungi Gemini: {e}")
+        full_prompt = system_instruction + "\nUser: " + prompt
+        response = model.generate_content(full_prompt)
+        st.markdown(response.text)
+        st.session_state.messages.append({"role": "assistant", "content": response.text})
