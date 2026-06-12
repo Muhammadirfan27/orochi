@@ -7,9 +7,10 @@ import pytz
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
 # Konfigurasi API
-# Pastikan kamu sudah mengisi GEMINI_API_KEY di menu "Secrets" Streamlit
-genai.configure(api_key=st.secrets["AQ.Ab8RN6L0mt6wJodEiib7qI7x7ltzWdoFICnuej6-PwjjljNgww
-"])
+# Kode ini memanggil nama 'GEMINI_API_KEY' dari setting Secrets di Streamlit
+# Jadi jangan tulis API Key kamu langsung di sini!
+GEMINI_API_KEY = "AQ.Ab8RN6L0mt6wJodEiib7qI7x7ltzWdoFICnuej6-PwjjljNgww"
+
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Fungsi Waktu Jakarta
