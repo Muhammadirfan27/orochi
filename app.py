@@ -79,23 +79,26 @@ if st.session_state.status == "bicara":
         message_placeholder = st.empty()
         full_response = ""
         
-        # Panggil API dengan stream=True untuk efek mengetik
+        # Panggil API dengan stream=True
         stream = client.chat.completions.create(
             messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
             model="llama-3.1-8b-instant",
             stream=True
         )
         
-        # Loop untuk menulis teks satu per satu
+        # Loop dengan kecepatan lebih manusiawi
         for chunk in stream:
             if chunk.choices[0].delta.content is not None:
                 full_response += chunk.choices[0].delta.content
                 message_placeholder.markdown(full_response + "▌")
-                time.sleep(0.03) # Kecepatan mengetik
+                # Angka 0.07 detik per karakter terasa seperti kecepatan ketik orang santai
+                time.sleep(0.07) 
         
         message_placeholder.markdown(full_response)
         st.session_state.messages.append({"role": "assistant", "content": full_response})
         
-        # Setelah selesai mengetik, Orochi diam
+        # Jeda sedikit setelah selesai bicara agar Orochi tidak langsung diam
+        time.sleep(1)
+        
         st.session_state.status = "diam"
         st.rerun()
