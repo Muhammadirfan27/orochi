@@ -65,27 +65,42 @@ st.markdown("""
 
 # --- 6. LOGIKA CHAT & SENSORY FEEDBACK ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": f"Orochi aktif. Komandan Irfan terpantau di {st.session_state.lokasi_tersimpan}."}]
+    st.session_state.messages = [{"role": "assistant", "content": "Orochi aktif, Komandan."}]
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+# --- Deteksi Idle (Mode Tidur) ---
+if "last_interaction" not in st.session_state: st.session_state.last_interaction = time.time()
+if time.time() - st.session_state.last_interaction > 5: # Jika lebih dari 5 detik tidak ada chat
+    st.session_state.status = "tidur" 
+else:
+    st.session_state.status = "diam"
+
 if prompt := st.chat_input("Perintah untuk Orochi..."):
+    st.session_state.last_interaction = time.time()
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # FITUR 4: SENSORY FEEDBACK (Spinner)
-    with st.spinner("Orochi sedang menganalisis situasi..."):
-        sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
-        response = client.chat.completions.create(
-            messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
-            model="llama-3.1-8b-instant"
-        ).choices[0].message.content
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.rerun()
+    # Mode Berpikir
+    st.session_state.status = "berfikir"
+    st.rerun() # Paksa rerun untuk update GIF ke mode berfikir
 
-# FITUR 5: PROACTIVE NOTIFICATION
-if "last_toast" not in st.session_state: st.session_state.last_toast = time.time()
-if time.time() - st.session_state.last_toast > 1800:
-    st.toast("Orochi: Saya tetap siaga memantau koordinat Komandan.")
-    st.session_state.last_toast = time.time()
+# --- Proses Respon (Jika user baru saja chat) ---
+if st.session_state.status == "berfikir":
+    # Jeda 1 detik untuk menunjukkan Orochi sedang berpikir
+    time.sleep(1)
+    
+    # Mode Bicara
+    st.session_state.status = "bicara"
+    
+    sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
+    response = client.chat.completions.create(
+        messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
+        model="llama-3.1-8b-instant"
+    ).choices[0].message.content
+    
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.status = "diam"
+    st.session_state.last_interaction = time.time()
+    st.rerun()
