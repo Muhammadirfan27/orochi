@@ -62,9 +62,16 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT & PERSONA ---
+
+# Fungsi untuk avatar kustom
+def get_avatar(role):
+    if role == "assistant":
+        return "templates/orochi.png"
+    return None 
+
 # 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
+    with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])):
         st.markdown(msg["content"])
 
 # 2. Input User
@@ -96,15 +103,15 @@ if st.session_state.status == "berfikir":
 
 # 4. Mode Bicara
 if st.session_state.status == "bicara":
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=get_avatar("assistant")):
         message_placeholder = st.empty()
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        full_response = "" # Inisialisasi awal agar tidak error
+        full_response = ""
         konten_bicara = ""
         is_ai_mode = False
         
-        # Penentuan Konten
+        # Penentuan Mode
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
@@ -112,7 +119,7 @@ if st.session_state.status == "bicara":
         else:
             is_ai_mode = True
 
-        # Eksekusi
+        # Eksekusi AI atau Manual
         if is_ai_mode:
             try:
                 stream = client.chat.completions.create(
@@ -129,12 +136,13 @@ if st.session_state.status == "bicara":
             except Exception as e:
                 konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"
         else:
-            # Efek ketik untuk sapaan manual
+            # Efek ketik manual
             for char in konten_bicara:
                 full_response += char
                 message_placeholder.markdown(full_response + "▌")
                 time.sleep(0.08)
         
+        # Akhiri proses pengetikan
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
