@@ -32,7 +32,7 @@ gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi
 
 st.markdown(f"""
     <style>
-    /* Mengembalikan background GIF agar Orochi muncul kembali */
+    /* Background Utama */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}');
         background-size: cover;
@@ -41,33 +41,32 @@ st.markdown(f"""
     }}
     .stApp {{ background: transparent !important; }}
     
-    /* Bubble chat transparan agar tetap elegan */
+    /* Bubble chat transparan */
     [data-testid="stChatMessageContent"] {{ 
         background: rgba(0, 0, 0, 0.6) !important; 
         color: white !important;
         border-radius: 15px;
     }}
-    header, footer {{ visibility: hidden; }}
-
-    <style>
-    /* ... kode sebelumnya ... */
-
-    /* Menghapus semua elemen header, footer, dan menu default */
-    #MainMenu, footer, header, .stAppToolbar {
+    
+    /* PEMBERSIH GARIS DAN ELEMEN BAWAAN */
+    #MainMenu, footer, header, .stAppToolbar, [data-testid="stHeader"] {{
         visibility: hidden !important;
         display: none !important;
-    }
+    }}
 
-    /* Menghapus garis atau margin ekstra di bagian atas */
-    div[data-testid="stAppViewContainer"] > div:first-child {
+    /* Menghapus padding/margin atas */
+    div[data-testid="stAppViewContainer"] > div:first-child {{
         padding-top: 0 !important;
-    }
+    }}
 
-    /* Memastikan tidak ada border pada kontainer chat */
-    .stChatInputContainer {
+    /* Menghilangkan garis pembatas chat input */
+    .stChatInputContainer {{
         border: none !important;
-    }
-</style>
+        background: transparent !important;
+    }}
+    
+    /* Memastikan tidak ada garis dekoratif bawaan Streamlit */
+    hr {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
