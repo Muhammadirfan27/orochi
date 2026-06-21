@@ -35,7 +35,7 @@ if "messages" not in st.session_state: st.session_state.messages = []
 if time.time() - st.session_state.last_time > 10 and st.session_state.status == "diam":
     st.session_state.status = "tidur"
 
-# --- 6. CSS (Kotak transparan, tidak menutup kepala) ---
+# --- 6. CSS (Garis & Status dihapus) ---
 st.markdown(f"""
     <style>
     [data-testid="stAppViewContainer"] {{ padding: 0 !important; }}
@@ -50,23 +50,21 @@ st.markdown(f"""
 
 # --- 7. LOGIKA CHAT & ANIMASI ---
 st.markdown("<div class='chat-box'>", unsafe_allow_html=True)
-st.write(f"📍 {st.session_state.location} | Status: {st.session_state.status.upper()}")
+# Menampilkan lokasi saja, tanpa garis dan status
+st.markdown(f"📍 {st.session_state.location}")
 
 # Proses Input
 if prompt := st.chat_input("Perintah untuk Orochi..."):
-    st.session_state.status = "diam" # Reset ke diam saat mengetik
+    st.session_state.status = "diam"
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Jeda 3 detik untuk berfikir
     st.session_state.status = "berfikir"
     st.rerun()
 
-# Jika sedang berfikir
+# Logika Transisi Animasi
 if st.session_state.status == "berfikir":
     time.sleep(3)
     st.session_state.status = "bicara"
     
-    # Panggil AI
     memori = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
     response = client.chat.completions.create(
         messages=[{"role": "system", "content": f"Kamu Orochi. Data: {memori}"}, {"role": "user", "content": st.session_state.messages[-1]["content"]}],
@@ -75,7 +73,6 @@ if st.session_state.status == "berfikir":
     
     st.session_state.messages.append({"role": "assistant", "content": response})
     
-    # Durasi bicara berdasarkan panjang teks (1 detik per 50 karakter, minimal 2 detik)
     duration = max(2, len(response) / 50)
     time.sleep(duration)
     
@@ -83,7 +80,6 @@ if st.session_state.status == "berfikir":
     st.session_state.last_time = time.time()
     st.rerun()
 
-# Tampilkan Chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
