@@ -102,34 +102,40 @@ if st.session_state.status == "bicara":
         
         full_response = ""
         konten_bicara = ""
+        is_ai_mode = False
         
-        # Penentuan Konten
+        # Penentuan Mode
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            # Panggil AI
-            stream = client.chat.completions.create(
-                messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
-                model="llama-3.1-8b-instant",
-                stream=True
-            )
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    full_response += chunk.choices[0].delta.content
-                    message_placeholder.markdown(full_response + "▌")
-                    time.sleep(0.13)
-            konten_bicara = full_response
-        
-        # Efek ketik untuk sapaan manual
-        if not full_response:
-            teks_tampil = ""
+            is_ai_mode = True
+
+        # Eksekusi AI atau Manual
+        if is_ai_mode:
+            try:
+                stream = client.chat.completions.create(
+                    messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
+                    model="llama-3.1-8b-instant",
+                    stream=True
+                )
+                for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        full_response += chunk.choices[0].delta.content
+                        message_placeholder.markdown(full_response + "▌")
+                        time.sleep(0.13)
+                konten_bicara = full_response
+            except Exception as e:
+                konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"
+        else:
+            # Efek ketik manual
             for char in konten_bicara:
-                teks_tampil += char
-                message_placeholder.markdown(teks_tampil + "▌")
+                full_response += char
+                message_placeholder.markdown(full_response + "▌")
                 time.sleep(0.08)
         
+        # Akhiri proses pengetikan
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
