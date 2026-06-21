@@ -32,21 +32,34 @@ gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi
 
 st.markdown("""
     <style>
-    /* Sembunyikan elemen bawaan Streamlit yang memunculkan garis */
+    /* Hapus header, footer, dan menu default */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {
         visibility: hidden !important;
         display: none !important;
     }
     
-    /* Hapus garis yang dihasilkan oleh iframe komponen JS */
+    /* JANGAN sembunyikan iframe dengan display: none */
+    /* Karena jika disembunyikan, fungsi lokasi JS akan mati */
+    /* Cukup buat ukurannya menjadi sangat kecil agar tidak terlihat */
     iframe {
-        display: none !important;
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        pointer-events: none !important;
     }
 
-    /* Pastikan tidak ada padding di bagian atas */
-    .block-container { 
-        padding-top: 0rem !important; 
+    /* Pastikan background full screen */
+    [data-testid="stAppViewContainer"] {
+        background-image: url('""" + gif_url + """');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
     }
+    
+    .block-container { padding-top: 0rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
