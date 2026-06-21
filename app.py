@@ -80,7 +80,6 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     prompt_lower = prompt.lower()
     
-    # CEK STATUS TIDUR
     if st.session_state.status == "tidur":
         if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
             st.session_state.messages.append({"role": "user", "content": prompt})
@@ -88,7 +87,6 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
         else:
             st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
             st.stop()
-    # STATUS NORMAL/DIAM
     else:
         st.session_state.messages.append({"role": "user", "content": prompt})
         if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
@@ -97,67 +95,53 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
             st.session_state.status = "berfikir"
     st.rerun()
 
-# 3. Logika Transisi Status
+# 3. Logika Transisi
 if st.session_state.status == "berfikir":
     time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# --- REVISI MODE BICARA (AGAR OROCHI TIDAK BERTELE-TELE) ---
-
-        # 4. Mode Bicara
-        if st.session_state.status == "bicara":
-            with st.chat_message("assistant", avatar=get_avatar("assistant")):
-                message_placeholder = st.empty()
-                last_user_msg = st.session_state.messages[-1]["content"].lower()
-                
-                # 1. AMBIL WAKTU TERKINI (Detik yang tepat)
-                waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-                str_waktu = waktu_jkt.strftime("%A, %d %B %Y, jam %H:%M")
-                
-                # 2. PROMPT SANGAT SINGKAT & TEGAS
-                system_prompt = (
-                    f"Hari ini adalah {str_waktu}. Jawab pertanyaan Irfan dengan SANGAT SINGKAT, "
-                    "langsung ke poinnya, jangan bertele-tele, dan jangan bilang tidak tahu waktu."
+# 4. Mode Bicara
+if st.session_state.status == "bicara":
+    with st.chat_message("assistant", avatar=get_avatar("assistant")):
+        message_placeholder = st.empty()
+        last_user_msg = st.session_state.messages[-1]["content"].lower()
+        
+        # Penentuan Konten Manual
+        if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
+            konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
+        elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
+            konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
+        else:
+            # Mode AI dengan Waktu Terkini
+            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            str_waktu = waktu_jkt.strftime("%A, %d %B %Y, jam %H:%M")
+            
+            system_prompt = (
+                f"Sekarang adalah {str_waktu}. Jawab pertanyaan Irfan dengan SANGAT SINGKAT, "
+                "langsung ke poinnya, jangan bertele-tele, dan jangan bilang tidak tahu waktu."
+            )
+            
+            full_response = ""
+            try:
+                stream = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": last_user_msg}
+                    ],
+                    model="llama-3.1-8b-instant",
+                    stream=True
                 )
-                
-                try:
-                    # 3. KIRIM PROMPT MINIMAL
-                    response = client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": last_user_msg}
-                        ],
-                        model="llama-3.1-8b-instant",
-                        stream=True
-                    )
-                    
-                    full_response = ""
-                    for chunk in response:
-                        if chunk.choices[0].delta.content:
-                            full_response += chunk.choices[0].delta.content
-                            message_placeholder.markdown(full_response + "▌")
-                    
-                    konten_bicara = full_response
-                    
-                except Exception:
-                    konten_bicara = f"Sekarang {str_waktu}. Ada lagi?"
-
-                message_placeholder.markdown(konten_bicara)
-                st.session_state.messages.append({"role": "assistant", "content": konten_bicara})                
-                # Menampilkan respons
-                full_response = ""
-                for chunk in response:
+                for chunk in stream:
                     if chunk.choices[0].delta.content:
-                        char = chunk.choices[0].delta.content
-                        full_response += char
+                        full_response += chunk.choices[0].delta.content
                         message_placeholder.markdown(full_response + "▌")
-                        time.sleep(0.05) # Kecepatan ketik lebih stabil
-                
+                        time.sleep(0.03) # Kecepatan ketik stabil
                 konten_bicara = full_response
-                
-            except Exception as e:
-                konten_bicara = "Aduh, koneksiku lagi gangguan, Irfan."        # Akhiri proses pengetikan
+            except Exception:
+                konten_bicara = f"Sekarang {str_waktu}. Ada lagi yang ingin ditanyakan?"
+
+        # Finalisasi
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
