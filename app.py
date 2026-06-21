@@ -64,10 +64,13 @@ st.markdown(f"""
 # --- 5. LOGIKA CHAT & PERSONA ---
 
 # Fungsi untuk avatar kustom
+# --- AVATAR KUSTOM (PERBAIKAN) ---
 def get_avatar(role):
     if role == "assistant":
-        return "templates/orochi.png"
-    return None 
+        # Gunakan path relatif atau URL yang bisa diakses web
+        # Pastikan file ada di folder tersebut dan bisa diakses publik
+        return "templates/Orochi.png" 
+    return None
 
 # 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
