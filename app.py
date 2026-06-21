@@ -75,16 +75,33 @@ if st.session_state.status == "berfikir":
     st.rerun()
 
 if st.session_state.status == "bicara":
+    # Gunakan placeholder untuk gambar agar tidak me-refresh background seluruh halaman
+    # Pastikan file Orochi_bicara.gif sudah dioptimasi untuk looping halus
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
         
-        # Panggil API
         stream = client.chat.completions.create(
             messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
             model="llama-3.1-8b-instant",
             stream=True
         )
+        
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                full_response += chunk.choices[0].delta.content
+                message_placeholder.markdown(full_response + "▌")
+                # Jika masih terasa patah, kurangi jeda sedikit agar alur GIF tetap terjaga
+                time.sleep(0.11) 
+        
+        message_placeholder.markdown(full_response)
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        
+        # Jeda tambahan 1 detik untuk membiarkan GIF menyelesaikan siklus terakhirnya
+        time.sleep(1) 
+        
+        st.session_state.status = "diam"
+        st.rerun()
         
         # Loop dengan kecepatan sangat santai
         for chunk in stream:
