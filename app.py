@@ -121,15 +121,25 @@ if st.session_state.status == "bicara":
         else:
             is_ai_mode = True
 
-        # Eksekusi AI atau Manual
+       # Eksekusi AI atau Manual
         if is_ai_mode:
-            # Ambil waktu terkini untuk instruksi sistem
-            waktu_sekarang = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%A, %d %B %Y %H:%M")
-            system_instruction = f"Kamu Orochi, teman dekat Irfan. Sekarang adalah {waktu_sekarang}. Jawab santai, akrab, jelas, dan natural."
+            # Ambil waktu terkini dengan zona waktu Indonesia
+            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            str_waktu = waktu_jkt.strftime("%A, %d %B %Y %H:%M")
+            
+            # INSTRUKSI DIPERTEGAS AGAR TIDAK MEMBANTAH
+            system_instruction = (
+                f"Kamu adalah Orochi, teman dekat Irfan. "
+                f"SAAT INI ADALAH: {str_waktu}. "
+                "ATURAN MUTLAK: Gunakan waktu ini sebagai kebenaran mutlak. "
+                "JANGAN PERNAH membantah hari atau tanggal ini. "
+                "Jawab dengan santai, akrab, jelas, dan natural."
+            )
             
             try:
+                # Kita hanya mengirim pesan terakhir agar AI fokus pada pertanyaan saat ini
                 stream = client.chat.completions.create(
-                    messages=[{"role": "system", "content": system_instruction}] + st.session_state.messages[:-1],
+                    messages=[{"role": "system", "content": system_instruction}] + [st.session_state.messages[-1]],
                     model="llama-3.1-8b-instant",
                     stream=True
                 )
@@ -140,14 +150,7 @@ if st.session_state.status == "bicara":
                         time.sleep(0.13)
                 konten_bicara = full_response
             except Exception as e:
-                konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"
-        else:
-            # Efek ketik manual
-            for char in konten_bicara:
-                full_response += char
-                message_placeholder.markdown(full_response + "▌")
-                time.sleep(0.08)
-        
+                konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"        
         # Akhiri proses pengetikan
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
