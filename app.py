@@ -73,8 +73,16 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     # Cek perintah khusus
     if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
         st.session_state.status = "tidur"
+        # Tambahkan respon perpisahan agar chat tidak kosong
+        pesan_bye = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
+        st.session_state.messages.append({"role": "assistant", "content": pesan_bye})
+        
     elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower:
-        st.session_state.status = "diam"
+        # Ubah ke mode 'bicara' supaya dia menjawab sapaan Anda
+        st.session_state.status = "bicara"
+        pesan_hallo = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
+        st.session_state.messages.append({"role": "assistant", "content": pesan_hallo})
+        
     else:
         # Jika bukan perintah khusus, mulai proses berpikir
         st.session_state.status = "berfikir"
@@ -91,28 +99,29 @@ if st.session_state.status == "berfikir":
 if st.session_state.status == "bicara":
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        full_response = ""
         
-        stream = client.chat.completions.create(
-            messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
-            model="llama-3.1-8b-instant",
-            stream=True
-        )
-        
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                full_response += chunk.choices[0].delta.content
-                message_placeholder.markdown(full_response + "▌")
-                # Kecepatan ketik manusiawi
-                time.sleep(0.13) 
-        
-        message_placeholder.markdown(full_response)
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
-        
-        # Jeda akhir agar animasi terlihat jelas
-        time.sleep(2) 
+        # Cek apakah pesan terakhir adalah pesan sapaan manual (bukan dari AI)
+        last_msg = st.session_state.messages[-1]
+        if last_msg["role"] == "assistant" and "Halo" in last_msg["content"] or "bye" in last_msg["content"].lower():
+            # Jika itu pesan sapaan, tampilkan langsung
+            message_placeholder.markdown(last_msg["content"])
+            time.sleep(2)
+        else:
+            # Jika itu pertanyaan umum, minta AI untuk menjawab
+            full_response = ""
+            stream = client.chat.completions.create(
+                messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
+                model="llama-3.1-8b-instant",
+                stream=True
+            )
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    full_response += chunk.choices[0].delta.content
+                    message_placeholder.markdown(full_response + "▌")
+                    time.sleep(0.13) 
+            message_placeholder.markdown(full_response)
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            time.sleep(2)
         
         st.session_state.status = "diam"
         st.rerun()
-
-# Jika status 'tidur' atau 'diam', tidak perlu aksi tambahan (GIF akan berubah otomatis via CSS)
