@@ -67,18 +67,28 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
+    prompt_lower = prompt.lower()
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "berfikir"
+
+    # Cek perintah khusus
+    if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
+        st.session_state.status = "tidur"
+    elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower:
+        st.session_state.status = "diam"
+    else:
+        # Jika bukan perintah khusus, mulai proses berpikir
+        st.session_state.status = "berfikir"
+    
     st.rerun()
 
+# --- MODE BERFIKIR ---
 if st.session_state.status == "berfikir":
     time.sleep(3) 
     st.session_state.status = "bicara"
     st.rerun()
 
+# --- MODE BICARA ---
 if st.session_state.status == "bicara":
-    # Gunakan placeholder untuk gambar agar tidak me-refresh background seluruh halaman
-    # Pastikan file Orochi_bicara.gif sudah dioptimasi untuk looping halus
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
@@ -93,31 +103,16 @@ if st.session_state.status == "bicara":
             if chunk.choices[0].delta.content is not None:
                 full_response += chunk.choices[0].delta.content
                 message_placeholder.markdown(full_response + "▌")
-                # Jika masih terasa patah, kurangi jeda sedikit agar alur GIF tetap terjaga
-                time.sleep(0.11) 
-        
-        message_placeholder.markdown(full_response)
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
-        
-        # Jeda tambahan 1 detik untuk membiarkan GIF menyelesaikan siklus terakhirnya
-        time.sleep(1) 
-        
-        st.session_state.status = "diam"
-        st.rerun()
-        
-        # Loop dengan kecepatan sangat santai
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                full_response += chunk.choices[0].delta.content
-                message_placeholder.markdown(full_response + "▌")
-                # Angka 0.13 detik per karakter akan terasa jauh lebih pelan dan manusiawi
+                # Kecepatan ketik manusiawi
                 time.sleep(0.13) 
         
         message_placeholder.markdown(full_response)
         st.session_state.messages.append({"role": "assistant", "content": full_response})
         
-        # Jeda tambahan agar transisi ke mode 'diam' terasa lebih natural
+        # Jeda akhir agar animasi terlihat jelas
         time.sleep(2) 
         
         st.session_state.status = "diam"
         st.rerun()
+
+# Jika status 'tidur' atau 'diam', tidak perlu aksi tambahan (GIF akan berubah otomatis via CSS)
