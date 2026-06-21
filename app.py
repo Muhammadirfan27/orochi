@@ -47,7 +47,7 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
         waktu = now.strftime("%A, %d %B %Y (Jam %H:%M WIB)")
         
         system_prompt = (
-            f"Kamu Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. "
+            f"Kamu Orochi, asisten setia Pak Irfan, Aku dirancang untuk membantumu. "
             f"Waktu sekarang: {waktu}. "
             "Gaya bicara: santai, WA style, jangan kaku, solutif, gunakan maksimal 2 emoji."
         )
