@@ -3,6 +3,7 @@ import time
 from groq import Groq
 from datetime import datetime
 import pytz
+import streamlit.components.v1 as components
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
@@ -15,7 +16,9 @@ PROFIL_KOMANDAN = {
     "Keahlian": "Software Developer (PHP, IoT, MQTT)",
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
+
 # --- 3. LOGIKA LOKASI (JS) ---
+# Mengambil data dari browser. Komponen ini pasif dan berjalan di background
 js_location = """
 <script>
     if (navigator.geolocation) {
@@ -27,7 +30,8 @@ js_location = """
 </script>
 """
 components.html(js_location, height=0)
-# --- 3. LOGIKA STATE ---
+
+# --- 4. LOGIKA STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
 if "messages" not in st.session_state:
@@ -40,12 +44,12 @@ if "messages" not in st.session_state:
 if time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
     st.session_state.status = "tidur"
 
-# --- 4. CSS DYNAMIC BACKGROUND ---
+# --- 5. CSS FULLSCREEN (TANPA PEMBATAS HITAM) ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
 
 st.markdown(f"""
     <style>
-    /* Mengatur gambar sebagai background halaman yang responsif */
+    /* Paksa background agar menutupi 100% layar tanpa margin hitam */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}');
         background-size: cover;
@@ -53,22 +57,20 @@ st.markdown(f"""
         background-repeat: no-repeat;
         background-attachment: fixed;
     }}
-    
     .stApp {{ background: transparent !important; }}
     
-    /* Bubble chat transparan agar menyatu dengan background */
+    /* Bubble chat transparan */
     [data-testid="stChatMessageContent"] {{ 
-        background: rgba(0, 0, 0, 0.7) !important; 
+        background: rgba(0, 0, 0, 0.6) !important; 
         color: white !important;
         border-radius: 15px;
     }}
-    
-    /* Menghilangkan elemen yang menghalangi background */
+    /* Hilangkan footer/header bawaan */
     header, footer {{ visibility: hidden; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
+# --- 6. LOGIKA CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -80,12 +82,14 @@ if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.rerun()
 
 if st.session_state.status == "berfikir":
-    time.sleep(1)
+    # Langsung proses tanpa sleep lama agar responsif
     st.session_state.status = "bicara"
     
     tz = pytz.timezone('Asia/Jakarta')
     waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
-    sys_prompt = f"Kamu Orochi, asisten setia Komandan Irfan. Profil: {PROFIL_KOMANDAN}. Waktu: {waktu}. Aturan: Jangan balas sapaan, langsung jawab cerdas & berwibawa."
+    
+    # Menambahkan instruksi lokasi ke sys_prompt
+    sys_prompt = f"Kamu Orochi, asisten setia Komandan Irfan. Profil: {PROFIL_KOMANDAN}. Waktu: {waktu}. Aturan: Jangan balas sapaan, langsung jawab cerdas & berwibawa. Jika lokasi terdeteksi, ingat lokasi tersebut."
     
     chat_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
     
@@ -98,6 +102,7 @@ if st.session_state.status == "berfikir":
     
     st.session_state.messages.append({"role": "assistant", "content": response})
     
+    # Durasi bicara sesuai panjang teks
     time.sleep(max(2, len(response) / 40))
     st.session_state.status = "diam"
     st.session_state.last_activity = time.time()
