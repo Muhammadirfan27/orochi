@@ -67,8 +67,17 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
+    # Jeda 3 detik sebelum berubah status ke mode berfikir
+    time.sleep(3)
+    
+    # Update status ke berfikir dan refresh halaman
+    st.session_state.status = "berfikir"
+    st.rerun()
+
+# Logika AI berjalan jika status saat ini 'berfikir'
+if st.session_state.status == "berfikir":
     with st.spinner("Orochi lagi mikir..."):
-        # PERSONA: Teman akrab, santai, sopan
+        # PERSONA: Teman akrab, santai, sopan, dan pintar
         sys_prompt = (
             "Kamu adalah Orochi, teman dekat Irfan. "
             "Gunakan bahasa yang super santai, akrab, dan asik tapi sopan. "
@@ -83,4 +92,7 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
         ).choices[0].message.content
         
         st.session_state.messages.append({"role": "assistant", "content": response})
+        
+        # Kembali ke mode diam setelah selesai
+        st.session_state.status = "diam"
         st.rerun()
