@@ -20,13 +20,15 @@ if loc:
 # --- 3. DYNAMIC PERSONALITY ENGINE ---
 def get_orochi_mood():
     h = datetime.now(pytz.timezone('Asia/Jakarta')).hour
+    # Tetap santai meski sedang tidur
     if 0 <= h < 5: return "tidur"
     return "diam" 
 
 st.session_state.status = get_orochi_mood()
 
-# --- 4. CSS BACKGROUND (DENGAN FORMAT YANG TERBUKTI BERHASIL) ---
-gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
+# --- 4. CSS BACKGROUND (FIXED PATH) ---
+# Menggunakan path 'templates/' sesuai struktur GitHub Anda
+gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 
 st.markdown("""
     <style>
@@ -36,13 +38,8 @@ st.markdown("""
     }
     
     iframe {
-        width: 1px !important;
-        height: 1px !important;
-        opacity: 0 !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        pointer-events: none !important;
+        width: 1px !important; height: 1px !important; opacity: 0 !important;
+        position: absolute !important; pointer-events: none !important;
     }
 
     [data-testid="stAppViewContainer"] {
@@ -56,28 +53,35 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
+# --- 5. LOGIKA CHAT DENGAN PERSONA SANTAI ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": f"Orochi aktif. Komandan Irfan terpantau di {st.session_state.lokasi_tersimpan}."}]
+    st.session_state.messages = [{"role": "assistant", "content": f"Halo Irfan! Orochi di sini. Lagi santai nih di {st.session_state.lokasi_tersimpan}. Ada yang bisa kubantu?"}]
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Perintah untuk Orochi..."):
+if prompt := st.chat_input("Ngobrol sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    with st.spinner("Orochi sedang menganalisis situasi..."):
-        sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
+    with st.spinner("Orochi lagi mikir bentar..."):
+        # Persona diubah menjadi teman yang santai dan sopan
+        sys_prompt = (
+            f"Nama: Orochi. Teman: Irfan. Lokasi saat ini: {st.session_state.lokasi_tersimpan}. "
+            "Gunakan gaya bicara yang santai, akrab, sopan, dan asyik seperti teman dekat. "
+            "Jangan gunakan gaya bahasa militer atau kaku. Jawab dengan cerdas namun tetap santai."
+        )
+        
         response = client.chat.completions.create(
             messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
             model="llama-3.1-8b-instant"
         ).choices[0].message.content
+        
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.rerun()
 
 # --- 6. PROACTIVE NOTIFICATION ---
 if "last_toast" not in st.session_state: st.session_state.last_toast = time.time()
 if time.time() - st.session_state.last_toast > 1800:
-    st.toast("Orochi: Saya tetap siaga memantau koordinat Komandan.")
+    st.toast("Orochi: Eh, masih di sini kan? Kalau butuh apa-apa kabarin ya!")
     st.session_state.last_toast = time.time()
