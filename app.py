@@ -48,6 +48,26 @@ st.markdown(f"""
         border-radius: 15px;
     }}
     header, footer {{ visibility: hidden; }}
+
+    <style>
+    /* ... kode sebelumnya ... */
+
+    /* Menghapus semua elemen header, footer, dan menu default */
+    #MainMenu, footer, header, .stAppToolbar {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* Menghapus garis atau margin ekstra di bagian atas */
+    div[data-testid="stAppViewContainer"] > div:first-child {
+        padding-top: 0 !important;
+    }
+
+    /* Memastikan tidak ada border pada kontainer chat */
+    .stChatInputContainer {
+        border: none !important;
+    }
+</style>
     </style>
 """, unsafe_allow_html=True)
 
