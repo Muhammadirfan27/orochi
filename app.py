@@ -3,35 +3,31 @@ import time
 from groq import Groq
 from datetime import datetime
 import pytz
-from streamlit_javascript import st_javascript # WAJIB INSTALL: pip install streamlit-javascript
+import streamlit.components.v1 as components
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. LOGIKA LOKASI (AKTIF) ---
-# Menggunakan st_javascript untuk menarik posisi secara real-time
-location_js = """
-navigator.geolocation.getCurrentPosition(
-    (pos) => ({lat: pos.coords.latitude, lon: pos.coords.longitude}),
-    (err) => ({error: err.message})
-)
+# --- 2. LOKASI ENGINE (HTML5 MURNI - TANPA PIP INSTALL) ---
+# Menggunakan JavaScript untuk mengirim data ke Streamlit melalui query parameter/callback
+location_tracker = """
+<script>
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                window.parent.postMessage({type: 'loc', lat: pos.coords.latitude, lon: pos.coords.longitude}, '*');
+            });
+        }
+    }
+    getLocation();
+</script>
 """
-# Menjalankan JS untuk mendapatkan data
-loc_data = st_javascript(location_js)
+components.html(location_tracker, height=0)
 
-# Simpan ke session state
-if "lokasi_user" not in st.session_state:
-    st.session_state.lokasi_user = "Mencari lokasi..."
-
-if loc_data and 'lat' in loc_data:
-    st.session_state.lokasi_user = f"Lat: {loc_data['lat']}, Lon: {loc_data['lon']}"
-
-# --- 3. LOGIKA STATE & PROFIL ---
-PROFIL_KOMANDAN = {"Nama": "Irfan", "Pekerjaan": "Admin Warehouse"}
+# --- 3. LOGIKA STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Siap Komandan Irfan, Orochi siap melayani."}]
+if "lokasi_user" not in st.session_state: st.session_state.lokasi_user = "Lokasi belum diizinkan"
 
 # --- 4. CSS DYNAMIC ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
@@ -50,6 +46,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT ---
+if "messages" not in st.session_state:
+    st.session_state.messages = [{"role": "assistant", "content": "Siap Komandan, Orochi aktif."}]
+
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -61,9 +60,7 @@ if prompt := st.chat_input("Perintah untuk Orochi..."):
 
 if st.session_state.status == "berfikir":
     st.session_state.status = "bicara"
-    
-    # AI sekarang tahu lokasi dari variabel st.session_state.lokasi_user
-    sys_prompt = f"Kamu Orochi. Lokasi Komandan Irfan saat ini: {st.session_state.lokasi_user}. Jawab cerdas dan akurat."
+    sys_prompt = f"Kamu Orochi. Asisten Irfan. Lokasi Terakhir: {st.session_state.lokasi_user}. Jawab cerdas & berwibawa."
     
     response = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
