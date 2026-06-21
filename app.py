@@ -5,64 +5,71 @@ from datetime import datetime
 import pytz
 
 # --- 1. KONFIGURASI ---
-# Gunakan layout="wide" agar lebih fleksibel
-st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="wide")
+st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. CSS CUSTOM UNTUK TAMPILAN FULLSCREEN ---
-# Ini adalah kunci untuk membuat gambar Orochi jadi background sejati
+# --- 2. CSS FULLSCREEN (DIPERBAIKI) ---
 st.markdown("""
     <style>
-    /* Mengatur gambar sebagai background utama */
+    /* Mengatur kontainer agar bisa menampung gambar sebagai background */
     .stApp {
-        background: url('https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_diam.jpg') no-repeat center center fixed;
-        background-size: cover;
+        background-color: #0e1117; /* Fallback warna gelap */
+    }
+    
+    /* Memastikan gambar background menutupi seluruh layar */
+    .bg-orochi {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        z-index: -1;
     }
 
-    /* Menghilangkan semua background putih/gelap dari elemen Streamlit */
-    .stApp, .block-container {
-        background: transparent !important;
-    }
-
-    /* Membuat bubble chat menjadi transparan agar Orochi tetap terlihat di baliknya */
+    /* Membuat chat bubble transparan agar terlihat menyatu */
     [data-testid="stChatMessageContent"] {
-        background: rgba(0, 0, 0, 0.4) !important;
-        color: #ffffff !important;
-        border-radius: 15px;
-    }
-
-    /* Menghilangkan header dan footer agar layar bersih */
-    header, footer {
-        visibility: hidden;
-    }
-
-    /* Memastikan input chat tetap terlihat jelas */
-    [data-testid="stChatInput"] {
         background: rgba(0, 0, 0, 0.6) !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LOGIKA CHAT ---
-# Inisialisasi pesan
+# --- 3. RENDER BACKGROUND ---
+# Menggunakan HTML tag img langsung agar lebih stabil daripada background-image CSS
+st.markdown(
+    '<img src="https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_diam.jpg" class="bg-orochi">', 
+    unsafe_allow_html=True
+)
+
+# --- 4. DATA PROFIL & LOGIKA ---
+PROFIL_KOMANDAN = {
+    "Nama": "Irfan",
+    "Pekerjaan": "Admin Warehouse",
+    "Keahlian": "Software Developer (PHP, IoT, MQTT)",
+    "Hobi": "Esports (Inferno Demons), Anime Kekkaishi",
+    "Lokasi": "Panongan, Tangerang"
+}
+
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Halo Irfan, Orochi siap melayani."}]
 
-# Tampilkan riwayat chat
+# --- 5. LOGIKA CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Input Chat
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Proses AI
     with st.chat_message("assistant"):
-        # Tambahkan konteks lokasi dan profil agar tidak "ngawur"
-        sys_prompt = "Kamu adalah Orochi, asisten setia Irfan, Admin Warehouse yang ahli di IoT & MQTT. Lokasi Irfan saat ini adalah Panongan, Tangerang. Jawab dengan singkat, cerdas, dan jangan pernah lupa lokasi atau profil Irfan."
+        # Menyertakan lokasi secara eksplisit dalam sistem prompt agar selalu diingat
+        sys_prompt = (f"Kamu Orochi, asisten setia Irfan. "
+                      f"Profil: {PROFIL_KOMANDAN}. "
+                      f"PENTING: Lokasi Irfan saat ini adalah {PROFIL_KOMANDAN['Lokasi']}. "
+                      "Jawablah dengan cerdas, singkat, dan berwibawa.")
         
         stream = client.chat.completions.create(
             model="llama-3.1-8b-instant",
