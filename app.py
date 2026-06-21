@@ -9,65 +9,83 @@ from streamlit_js_eval import streamlit_js_eval
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. STATE MANAGEMENT ---
-if "status" not in st.session_state: st.session_state.status = "diam"
-if "last_interaction" not in st.session_state: st.session_state.last_interaction = time.time()
-if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Orochi aktif, Komandan."}]
-
-# --- 3. LOGIKA LOKASI & MOOD ---
+# --- 2. FITUR 1: BRIDGE LOKASI (REAL-TIME) ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
-if loc: st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# Update Mood
-if time.time() - st.session_state.last_interaction > 5 and st.session_state.status not in ["berfikir", "bicara"]:
-    st.session_state.status = "tidur"
+# --- 3. FITUR 2: MEMORI PERSISTEN ---
+if "lokasi_tersimpan" not in st.session_state:
+    st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
+if loc:
+    st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. CSS DENGAN ID UNIK (AGAR GAMBAR MUNCUL) ---
-# Menambahkan timestamp (?t=...) pada URL agar browser tidak pakai cache lama
-gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif?t={time.time()}"
+# --- 4. FITUR 3: DYNAMIC PERSONALITY ENGINE ---
+def get_orochi_mood():
+    h = datetime.now(pytz.timezone('Asia/Jakarta')).hour
+    if 0 <= h < 5: return "tidur"
+    if 5 <= h < 11: return "diam" # Gunakan 'diam' jika GIF itu yang ada
+    return "diam"
 
-st.markdown(f"""
+st.session_state.status = get_orochi_mood()
+
+# --- 5. CSS BACKGROUND GIF (YANG DITUNGGU-TUNGGU) ---
+gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
+
+st.markdown("""
     <style>
-    /* Fokus menyembunyikan header saja, jangan menyembunyikan iframe lokasi */
-    header, [data-testid="stHeader"] {{ visibility: hidden !important; display: none !important; }}
+    /* Hapus header, footer, dan menu default */
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {
+        visibility: hidden !important;
+        display: none !important;
+    }
     
-    /* Background Orochi */
-    [data-testid="stAppViewContainer"] {{
-        background-image: url('{gif_url}') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
-    }}
+    /* JANGAN sembunyikan iframe dengan display: none */
+    /* Karena jika disembunyikan, fungsi lokasi JS akan mati */
+    /* Cukup buat ukurannya menjadi sangat kecil agar tidak terlihat */
+    iframe {
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Pastikan background full screen */
+    [data-testid="stAppViewContainer"] {
+        background-image: url('""" + gif_url + """');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
     
-    /* Bubble chat */
-    [data-testid="stChatMessageContent"] {{ background: rgba(0, 0, 0, 0.6) !important; color: white !important; border-radius: 15px; }}
+    .block-container { padding-top: 0rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT & STATE MACHINE ---
+# --- 6. LOGIKA CHAT & SENSORY FEEDBACK ---
+if "messages" not in st.session_state:
+    st.session_state.messages = [{"role": "assistant", "content": f"Orochi aktif. Komandan Irfan terpantau di {st.session_state.lokasi_tersimpan}."}]
+
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "berfikir"
-    st.session_state.last_interaction = time.time()
-    st.rerun()
+    
+    # FITUR 4: SENSORY FEEDBACK (Spinner)
+    with st.spinner("Orochi sedang menganalisis situasi..."):
+        sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
+        response = client.chat.completions.create(
+            messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
+            model="llama-3.1-8b-instant"
+        ).choices[0].message.content
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.rerun()
 
-if st.session_state.status == "berfikir":
-    time.sleep(1)
-    st.session_state.status = "bicara"
-    st.rerun()
-
-if st.session_state.status == "bicara":
-    sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
-    response = client.chat.completions.create(
-        messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
-        model="llama-3.1-8b-instant"
-    ).choices[0].message.content
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    st.session_state.status = "diam"
-    st.session_state.last_interaction = time.time()
-    st.rerun()
+# FITUR 5: PROACTIVE NOTIFICATION
+if "last_toast" not in st.session_state: st.session_state.last_toast = time.time()
+if time.time() - st.session_state.last_toast > 1800:
+    st.toast("Orochi: Saya tetap siaga memantau koordinat Komandan.")
+    st.session_state.last_toast = time.time()
