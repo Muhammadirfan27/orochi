@@ -16,32 +16,29 @@ PROFIL_KOMANDAN = {
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
 
-# --- 3. CSS FULLSCREEN BACKGROUND (REVISI) ---
-# Menggunakan selector yang lebih spesifik untuk menutupi seluruh layar
-st.markdown("""
+# --- 3. CSS FULLSCREEN BACKGROUND (REVISI TOTAL) ---
+st.markdown(f"""
     <style>
-    /* Background tetap di belakang dan menutupi layar */
-    .bg-img {
-        position: fixed; 
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        object-fit: cover;
-        z-index: -9999;
-        filter: brightness(0.5);
-    }
+    /* Menggunakan gif sebagai background halaman yang statis */
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
     
-    /* Paksa transparan pada semua elemen agar background terlihat */
-    .stApp { background: transparent !important; }
+    /* Menghilangkan background putih pada area konten */
+    .stApp {{ background: transparent !important; }}
     
-    /* Style Chat agar terlihat profesional di atas background */
-    [data-testid="stChatMessageContent"] { 
-        background: rgba(0, 0, 0, 0.7) !important; 
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+    /* Membuat bubble chat transparan gelap agar tulisan terbaca jelas */
+    [data-testid="stChatMessageContent"] {{ 
+        background: rgba(0, 0, 0, 0.6) !important; 
+        color: white !important;
+    }}
     
-    /* Hilangkan padding default agar chat lebih rapat ke atas */
-    .block-container { padding-top: 2rem !important; }
+    /* Menghilangkan header default Streamlit */
+    header {{ background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
