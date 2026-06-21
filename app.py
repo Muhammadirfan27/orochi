@@ -100,11 +100,11 @@ if st.session_state.status == "bicara":
         message_placeholder = st.empty()
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        full_response = ""
+        full_response = "" # Inisialisasi awal agar tidak error
         konten_bicara = ""
         is_ai_mode = False
         
-        # Penentuan Mode
+        # Penentuan Konten
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
@@ -112,7 +112,7 @@ if st.session_state.status == "bicara":
         else:
             is_ai_mode = True
 
-        # Eksekusi AI atau Manual
+        # Eksekusi
         if is_ai_mode:
             try:
                 stream = client.chat.completions.create(
@@ -129,13 +129,12 @@ if st.session_state.status == "bicara":
             except Exception as e:
                 konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"
         else:
-            # Efek ketik manual
+            # Efek ketik untuk sapaan manual
             for char in konten_bicara:
                 full_response += char
                 message_placeholder.markdown(full_response + "▌")
                 time.sleep(0.08)
         
-        # Akhiri proses pengetikan
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
