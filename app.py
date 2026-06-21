@@ -16,33 +16,7 @@ PROFIL_KOMANDAN = {
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
 
-# --- 3. CSS FULLSCREEN BACKGROUND (REVISI TOTAL) ---
-st.markdown(f"""
-    <style>
-    /* Menggunakan gif sebagai background halaman yang statis */
-    [data-testid="stAppViewContainer"] {{
-        background-image: url('https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-    
-    /* Menghilangkan background putih pada area konten */
-    .stApp {{ background: transparent !important; }}
-    
-    /* Membuat bubble chat transparan gelap agar tulisan terbaca jelas */
-    [data-testid="stChatMessageContent"] {{ 
-        background: rgba(0, 0, 0, 0.6) !important; 
-        color: white !important;
-    }}
-    
-    /* Menghilangkan header default Streamlit */
-    header {{ background: transparent !important; }}
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. INISIALISASI & LOGIKA ---
+# --- 3. LOGIKA STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
 if "messages" not in st.session_state:
@@ -55,31 +29,55 @@ if "messages" not in st.session_state:
 if time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
     st.session_state.status = "tidur"
 
-# Render Background
+# --- 4. CSS DYNAMIC BACKGROUND ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
-st.markdown(f'<img src="{gif_url}" class="bg-img">', unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT & STATE MACHINE ---
+st.markdown(f"""
+    <style>
+    /* Mengatur gambar sebagai background halaman yang responsif */
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('{gif_url}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    
+    .stApp {{ background: transparent !important; }}
+    
+    /* Bubble chat transparan agar menyatu dengan background */
+    [data-testid="stChatMessageContent"] {{ 
+        background: rgba(0, 0, 0, 0.7) !important; 
+        color: white !important;
+        border-radius: 15px;
+    }}
+    
+    /* Menghilangkan elemen yang menghalangi background */
+    header, footer {{ visibility: hidden; }}
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 5. LOGIKA CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Apa perintahmu, Komandan?"):
+if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.last_activity = time.time()
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
-    time.sleep(1) # Jeda berfikir
+    time.sleep(1)
     st.session_state.status = "bicara"
     
-    # Konteks & AI Request
     tz = pytz.timezone('Asia/Jakarta')
     waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
     sys_prompt = f"Kamu Orochi, asisten setia Komandan Irfan. Profil: {PROFIL_KOMANDAN}. Waktu: {waktu}. Aturan: Jangan balas sapaan, langsung jawab cerdas & berwibawa."
     
     chat_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+    
     chat_completion = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_prompt}] + chat_history,
         model="llama-3.1-8b-instant",
@@ -89,7 +87,6 @@ if st.session_state.status == "berfikir":
     
     st.session_state.messages.append({"role": "assistant", "content": response})
     
-    # Animasi Bicara
     time.sleep(max(2, len(response) / 40))
     st.session_state.status = "diam"
     st.session_state.last_activity = time.time()
