@@ -62,70 +62,70 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT & PERSONA ---
-# Menampilkan riwayat chat yang tersimpan
+# 1. Tampilkan riwayat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Input dari user
+# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    prompt_lower = prompt.lower()
     st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Deteksi perintah khusus
+    
+    # Deteksi Perintah Khusus
+    prompt_lower = prompt.lower()
     if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
         st.session_state.status = "tidur"
-        pesan_bye = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
-        st.session_state.messages.append({"role": "assistant", "content": pesan_bye})
-        
+        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"})
     elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower:
         st.session_state.status = "bicara"
-        pesan_hallo = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
-        st.session_state.messages.append({"role": "assistant", "content": pesan_hallo})
-        
+        # Kita masukkan teks sapaan ke messages agar nanti di-render di mode bicara
+        st.session_state.messages.append({"role": "assistant", "content": "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"})
     else:
-        # Jika chat biasa, masuk ke mode berfikir
         st.session_state.status = "berfikir"
     
     st.rerun()
 
-# Logika Transisi Status
+# 3. Logika Transisi Status
 if st.session_state.status == "berfikir":
-    time.sleep(3) 
+    time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# Logika Utama Mode Bicara (AI Menjawab)
+# 4. Mode Bicara (Stream AI atau Tampilkan Sapaan)
 if st.session_state.status == "bicara":
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         
-        # Cek apakah pesan terakhir adalah pesan sapaan manual (bukan perlu AI)
+        # Ambil pesan terakhir
         last_msg = st.session_state.messages[-1]
         
-        # Jika pesan terakhir adalah sapaan, tampilkan langsung tanpa AI
-        if last_msg["role"] == "assistant" and ("Halo" in last_msg["content"] or "Sampai jumpa" in last_msg["content"]):
-            message_placeholder.markdown(last_msg["content"])
-            time.sleep(2)
+        # JIKA PESAN TERAKHIR ADALAH SAPAAN (Bukan dari AI)
+        if last_msg.get("role") == "assistant" and (len(st.session_state.messages) == 1 or st.session_state.messages[-2]["role"] != "assistant"):
+            # Efek ketik untuk sapaan
+            text = last_msg["content"]
+            full_response = ""
+            for char in text:
+                full_response += char
+                message_placeholder.markdown(full_response + "▌")
+                time.sleep(0.1)
+            message_placeholder.markdown(full_response)
+        
+        # JIKA PERLU JAWABAN AI
         else:
-            # Jika bukan sapaan, jalankan AI Streaming
             full_response = ""
             stream = client.chat.completions.create(
-                messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
+                messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
                 model="llama-3.1-8b-instant",
                 stream=True
             )
-            
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     full_response += chunk.choices[0].delta.content
                     message_placeholder.markdown(full_response + "▌")
-                    time.sleep(0.13) # Kecepatan ketik manusiawi
-            
+                    time.sleep(0.13)
             message_placeholder.markdown(full_response)
             st.session_state.messages.append({"role": "assistant", "content": full_response})
-            time.sleep(2)
         
-        # Selesai bicara, kembali ke mode diam
+        time.sleep(1)
         st.session_state.status = "diam"
         st.rerun()
