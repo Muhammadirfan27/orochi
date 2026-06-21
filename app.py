@@ -12,11 +12,10 @@ try:
     if "GROQ_API_KEY" in st.secrets:
         api_key = st.secrets["GROQ_API_KEY"]
     else:
-        # Cadangan jika key belum terbaca
         api_key = os.environ.get("GROQ_API_KEY")
-        
+    
     if not api_key:
-        raise ValueError("API Key belum ditemukan di Secrets!")
+        raise ValueError("API Key tidak ditemukan!")
         
     client = Groq(api_key=api_key)
 except Exception as e:
@@ -25,35 +24,41 @@ except Exception as e:
 
 st.title("Orochi AI")
 
-# 2. INISIALISASI CHAT HISTORY
+# 2. INISIALISASI CHAT & PESAN SAMBUTAN
 if "messages" not in st.session_state:
     st.session_state.messages = []
+    welcome_msg = "Hai, aku Orochi, asisten setia Komandan Irfan di dunia Acma:Game! 🤖 Saya disini untuk membantu dan menyediakan informasi yang kamu butuhkan. Semoga hari kamu menyenangkan!"
+    st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
-# 3. TAMPILKAN HISTORY CHAT
+# 3. TAMPILKAN HISTORY
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 4. PROSES CHAT
+# 4. LOGIKA CHAT DENGAN KONTEKS LOKASI
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # Setting waktu Jakarta
+        # Waktu Jakarta
         tz = pytz.timezone('Asia/Jakarta')
         now = datetime.now(tz)
         waktu = now.strftime("%A, %d %B %Y (Jam %H:%M WIB)")
         
+        # Lokasi yang sudah disematkan (Hard-coded context)
+        lokasi = "South Tangerang, Banten, Indonesia"
+        
         system_prompt = (
             f"Kamu Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. "
-            f"Waktu sekarang: {waktu}. "
-            "Gaya bicara: santai, WA style, jangan kaku, solutif, gunakan maksimal 2 emoji."
+            f"IDENTITAS LOKASI: Komandan Irfan saat ini berada di {lokasi}. "
+            f"WAKTU SEKARANG: {waktu}. "
+            "Gaya bicara: santai, WA style, cerdas, solutif, gunakan maksimal 2 emoji. "
+            "Jika ditanya lokasi, jawab dengan data lokasi di atas."
         )
         
         try:
-            # Menggunakan model terbaru yang aktif di Groq
             chat_completion = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -66,5 +71,3 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
             st.session_state.messages.append({"role": "assistant", "content": response})
         except Exception as e:
             st.error(f"Error API: {e}")
-            if "401" in str(e):
-                st.warning("Pesan 401: Kunci API salah. Pastikan kuncinya benar di Settings > Secrets.")
