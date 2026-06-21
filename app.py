@@ -9,38 +9,32 @@ from streamlit_js_eval import streamlit_js_eval
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. FITUR 1: BRIDGE LOKASI (REAL-TIME) ---
+# --- 2. FITUR LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
 
-# --- 3. FITUR 2: MEMORI PERSISTEN ---
 if "lokasi_tersimpan" not in st.session_state:
     st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. FITUR 3: DYNAMIC PERSONALITY ENGINE ---
+# --- 3. DYNAMIC PERSONALITY ENGINE ---
 def get_orochi_mood():
     h = datetime.now(pytz.timezone('Asia/Jakarta')).hour
     if 0 <= h < 5: return "tidur"
-    if 5 <= h < 11: return "diam" # Gunakan 'diam' jika GIF itu yang ada
-    return "diam"
+    return "diam" 
 
 st.session_state.status = get_orochi_mood()
 
-# --- 5. CSS BACKGROUND GIF (YANG DITUNGGU-TUNGGU) ---
+# --- 4. CSS BACKGROUND (DENGAN FORMAT YANG TERBUKTI BERHASIL) ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
 
 st.markdown("""
     <style>
-    /* Hapus header, footer, dan menu default */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {
         visibility: hidden !important;
         display: none !important;
     }
     
-    /* JANGAN sembunyikan iframe dengan display: none */
-    /* Karena jika disembunyikan, fungsi lokasi JS akan mati */
-    /* Cukup buat ukurannya menjadi sangat kecil agar tidak terlihat */
     iframe {
         width: 1px !important;
         height: 1px !important;
@@ -51,7 +45,6 @@ st.markdown("""
         pointer-events: none !important;
     }
 
-    /* Pastikan background full screen */
     [data-testid="stAppViewContainer"] {
         background-image: url('""" + gif_url + """');
         background-size: cover;
@@ -63,7 +56,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 6. LOGIKA CHAT & SENSORY FEEDBACK ---
+# --- 5. LOGIKA CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": f"Orochi aktif. Komandan Irfan terpantau di {st.session_state.lokasi_tersimpan}."}]
 
@@ -74,7 +67,6 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # FITUR 4: SENSORY FEEDBACK (Spinner)
     with st.spinner("Orochi sedang menganalisis situasi..."):
         sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi: {st.session_state.lokasi_tersimpan}. Jawab cerdas & berwibawa."
         response = client.chat.completions.create(
@@ -84,7 +76,7 @@ if prompt := st.chat_input("Perintah untuk Orochi..."):
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.rerun()
 
-# FITUR 5: PROACTIVE NOTIFICATION
+# --- 6. PROACTIVE NOTIFICATION ---
 if "last_toast" not in st.session_state: st.session_state.last_toast = time.time()
 if time.time() - st.session_state.last_toast > 1800:
     st.toast("Orochi: Saya tetap siaga memantau koordinat Komandan.")
