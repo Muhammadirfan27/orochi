@@ -37,6 +37,8 @@ st.markdown(f"""
         background-size: cover !important;
         background-position: center !important;
         background-attachment: fixed !important;
+        will-change: background-image;
+        backface-visibility: hidden;
     }}
     
     /* 3. Menghilangkan Kotak Chat */
