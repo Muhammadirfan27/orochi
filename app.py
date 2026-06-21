@@ -1,62 +1,72 @@
 import streamlit as st
+import time
 from groq import Groq
 from datetime import datetime
 import pytz
 
-# Konfigurasi
-st.set_page_config(page_title="Orochi AI", page_icon="🐍")
+# --- 1. KONFIGURASI ---
+st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-st.title("Orochi AI")
+# --- 2. CSS RESPONSIVE & LAYOUT ---
+st.markdown("""
+    <style>
+    .stApp { background-color: #0e1117; }
+    /* Memastikan GIF responsif di HP dan Laptop */
+    .orochi-img { 
+        width: 100%; 
+        max-width: 400px; 
+        display: block; 
+        margin: auto; 
+        border-radius: 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Profil
-PROFIL_KOMANDAN = {
-    "Nama": "Irfan",
-    "Pekerjaan": "Admin Warehouse",
-    "Pendidikan": "Mahasiswa Tingkat Akhir",
-    "Alamat": "Jl. Swadaya III, Ciakar, Kec. Panongan, Kabupaten Tangerang, Banten 15710, Perum Golden Residence",
-    "Keahlian": "Software Developer (PHP, IoT, MQTT)",
-    "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
-}
+# --- 3. INISIALISASI STATE ---
+if "status" not in st.session_state: st.session_state.status = "diam"
+if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
+if "messages" not in st.session_state: st.session_state.messages = [{"role": "assistant", "content": "Ada yang bisa saya bantu, Komandan?"}]
 
-# Fungsi Sapaan Akurat
-def get_sapaan():
-    tz = pytz.timezone('Asia/Jakarta')
-    hour = datetime.now(tz).hour
-    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan. Ada yang bisa saya bantu?"
-    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan. Ada yang bisa saya bantu?"
-    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan. Ada yang bisa saya bantu?"
-    return "Selamat malam, Komandan Irfan. Ada yang bisa saya bantu?"
+# --- 4. LOGIKA AUTO-TIDUR (10 DETIK) ---
+if time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
+    st.session_state.status = "tidur"
 
-if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": get_sapaan()}]
+# --- 5. TAMPILAN GIF ---
+gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
+st.markdown(f'<img src="{gif_url}" class="orochi-img">', unsafe_allow_html=True)
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- 6. LOGIKA CHAT ---
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
+    st.session_state.last_activity = time.time()
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    st.session_state.status = "berfikir"
+    st.rerun()
 
-    with st.chat_message("assistant"):
-        memori_string = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
-        
-        # Instruksi SUPER KETAT
-        system_prompt = (
-            f"Kamu Orochi, asisten profesional Komandan Irfan. DATA MEMORI: {memori_string}. "
-            "INSTRUKSI UTAMA: "
-            "1. JANGAN PERNAH membalas sapaan pengguna dengan sapaan balik (misal: jika pengguna bilang 'siang', jangan balas 'siang juga'). "
-            "2. Langsung tanyakan kebutuhan pengguna atau jawab pertanyaan mereka dengan sopan, akurat, dan berwibawa. "
-            "3. Gunakan memori yang disediakan untuk data pribadi. "
-            "4. Jangan gunakan kata sapaan pagi/siang/sore di dalam chat setelah sapaan pembuka."
-        )
-        
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",
-        )
-        response = chat_completion.choices[0].message.content
-        st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+# --- 7. STATE MACHINE (BERFIKIR -> BICARA -> DIAM) ---
+if st.session_state.status == "berfikir":
+    time.sleep(3) # Jeda 3 detik
+    st.session_state.status = "bicara"
+    
+    # Panggilan AI
+    memori = "Nama: Irfan, Pekerjaan: Admin Warehouse, Keahlian: Software Developer (PHP, IoT, MQTT)"
+    system_prompt = f"Kamu Orochi. Data: {memori}. Instruksi: Jangan balas sapaan, langsung jawab dengan berwibawa."
+    
+    response = client.chat.completions.create(
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": st.session_state.messages[-1]["content"]}],
+        model="llama-3.1-8b-instant"
+    ).choices[0].message.content
+    
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    # Durasi bicara sesuai panjang teks (minimal 3 detik)
+    durasi_bicara = max(3, len(response) / 40)
+    time.sleep(durasi_bicara)
+    
+    st.session_state.status = "diam"
+    st.session_state.last_activity = time.time()
+    st.rerun()
