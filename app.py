@@ -62,57 +62,50 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT & PERSONA ---
-# 1. Tampilkan riwayat chat (kecuali yang sedang dalam proses pengetikan)
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     prompt_lower = prompt.lower()
     
-    # CEK STATUS TIDUR
     if st.session_state.status == "tidur":
         if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.session_state.status = "bicara"
-            # Jangan append pesan assistant di sini agar tidak muncul dobel
         else:
             st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
             st.stop()
-            
-    # STATUS NORMAL/DIAM
     else:
         st.session_state.messages.append({"role": "user", "content": prompt})
-        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
-            st.session_state.status = "bicara"
-        else:
-            st.session_state.status = "berfikir"
+        st.session_state.status = "berfikir"
     
     st.rerun()
 
-# 3. Logika Transisi Status
 if st.session_state.status == "berfikir":
     time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# 4. Mode Bicara (Menangani pengetikan tanpa duplikasi)
 if st.session_state.status == "bicara":
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        
-        # Tentukan konten yang akan diucapkan
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Skenario Sapaan/Bye
+        full_response = "" # <--- INI PENTING: Inisialisasi variabel di sini
+        konten_bicara = ""
+        is_ai_mode = False
+        
+        # Tentukan mode
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            # Skenario Jawaban AI (Fetch dari LLM)
-            full_response = ""
+            is_ai_mode = True
+
+        # Eksekusi Mode
+        if is_ai_mode:
             stream = client.chat.completions.create(
                 messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
                 model="llama-3.1-8b-instant",
@@ -124,26 +117,16 @@ if st.session_state.status == "bicara":
                     message_placeholder.markdown(full_response + "▌")
                     time.sleep(0.13)
             konten_bicara = full_response
-
-        # Proses pengetikan untuk semua skenario (Sapaan/Bye/AI)
-        if not full_response: # Jika ini sapaan/bye (AI tidak aktif)
-            teks_tampil = ""
+        else:
+            # Efek ketik manual
             for char in konten_bicara:
-                teks_tampil += char
-                message_placeholder.markdown(teks_tampil + "▌")
+                full_response += char
+                message_placeholder.markdown(full_response + "▌")
                 time.sleep(0.08)
         
-        # Selesaikan pengetikan
         message_placeholder.markdown(konten_bicara)
-        
-        # Simpan ke histori HANYA SETELAH selesai diketik
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
         time.sleep(1)
-        
-        # Penentuan status akhir
-        if "Sampai jumpa" in konten_bicara:
-            st.session_state.status = "tidur"
-        else:
-            st.session_state.status = "diam"
+        st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
         st.rerun()
