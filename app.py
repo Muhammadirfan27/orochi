@@ -3,107 +3,73 @@ import time
 from groq import Groq
 from datetime import datetime
 import pytz
-import streamlit.components.v1 as components
+from streamlit_javascript import st_javascript # WAJIB INSTALL: pip install streamlit-javascript
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. DATA PROFIL ---
-PROFIL_KOMANDAN = {
-    "Nama": "Irfan",
-    "Pekerjaan": "Admin Warehouse",
-    "Keahlian": "Software Developer (PHP, IoT, MQTT)",
-    "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
-}
-
-# --- 3. LOGIKA LOKASI (JS) ---
-# Mengambil data dari browser. Komponen ini pasif dan berjalan di background
-js_location = """
-<script>
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => { window.parent.postMessage({type: 'loc', lat: pos.coords.latitude, lon: pos.coords.longitude}, '*'); },
-            (err) => { window.parent.postMessage({type: 'loc_err'}, '*'); }
-        );
-    }
-</script>
+# --- 2. LOGIKA LOKASI (AKTIF) ---
+# Menggunakan st_javascript untuk menarik posisi secara real-time
+location_js = """
+navigator.geolocation.getCurrentPosition(
+    (pos) => ({lat: pos.coords.latitude, lon: pos.coords.longitude}),
+    (err) => ({error: err.message})
+)
 """
-components.html(js_location, height=0)
+# Menjalankan JS untuk mendapatkan data
+loc_data = st_javascript(location_js)
 
-# --- 4. LOGIKA STATE ---
+# Simpan ke session state
+if "lokasi_user" not in st.session_state:
+    st.session_state.lokasi_user = "Mencari lokasi..."
+
+if loc_data and 'lat' in loc_data:
+    st.session_state.lokasi_user = f"Lat: {loc_data['lat']}, Lon: {loc_data['lon']}"
+
+# --- 3. LOGIKA STATE & PROFIL ---
+PROFIL_KOMANDAN = {"Nama": "Irfan", "Pekerjaan": "Admin Warehouse"}
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
 if "messages" not in st.session_state:
-    tz = pytz.timezone('Asia/Jakarta')
-    h = datetime.now(tz).hour
-    s = "Pagi" if 5<=h<11 else "Siang" if 11<=h<15 else "Sore" if 15<=h<19 else "Malam"
-    st.session_state.messages = [{"role": "assistant", "content": f"Selamat {s}, Komandan Irfan. Ada yang bisa saya bantu?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Siap Komandan Irfan, Orochi siap melayani."}]
 
-# Auto-Tidur 10 Detik
-if time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
-    st.session_state.status = "tidur"
-
-# --- 5. CSS FULLSCREEN (TANPA PEMBATAS HITAM) ---
+# --- 4. CSS DYNAMIC ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
-
 st.markdown(f"""
     <style>
-    /* Paksa background agar menutupi 100% layar tanpa margin hitam */
     [data-testid="stAppViewContainer"] {{
-        background-image: url('{gif_url}');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
+        background-image: url('{gif_url}'); background-size: cover;
+        background-position: center; background-attachment: fixed;
     }}
     .stApp {{ background: transparent !important; }}
-    
-    /* Bubble chat transparan */
     [data-testid="stChatMessageContent"] {{ 
-        background: rgba(0, 0, 0, 0.6) !important; 
-        color: white !important;
-        border-radius: 15px;
+        background: rgba(0, 0, 0, 0.6) !important; color: white !important; border-radius: 15px;
     }}
-    /* Hilangkan footer/header bawaan */
     header, footer {{ visibility: hidden; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 6. LOGIKA CHAT ---
+# --- 5. LOGIKA CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Perintah untuk Orochi..."):
-    st.session_state.last_activity = time.time()
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
-    # Langsung proses tanpa sleep lama agar responsif
     st.session_state.status = "bicara"
     
-    tz = pytz.timezone('Asia/Jakarta')
-    waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
+    # AI sekarang tahu lokasi dari variabel st.session_state.lokasi_user
+    sys_prompt = f"Kamu Orochi. Lokasi Komandan Irfan saat ini: {st.session_state.lokasi_user}. Jawab cerdas dan akurat."
     
-    # Menambahkan instruksi lokasi ke sys_prompt
-    sys_prompt = f"Kamu Orochi, asisten setia Komandan Irfan. Profil: {PROFIL_KOMANDAN}. Waktu: {waktu}. Aturan: Jangan balas sapaan, langsung jawab cerdas & berwibawa. Jika lokasi terdeteksi, ingat lokasi tersebut."
-    
-    chat_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-    
-    chat_completion = client.chat.completions.create(
-        messages=[{"role": "system", "content": sys_prompt}] + chat_history,
-        model="llama-3.1-8b-instant",
-        temperature=0.3
-    )
-    response = chat_completion.choices[0].message.content
+    response = client.chat.completions.create(
+        messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
+        model="llama-3.1-8b-instant"
+    ).choices[0].message.content
     
     st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # Durasi bicara sesuai panjang teks
-    time.sleep(max(2, len(response) / 40))
     st.session_state.status = "diam"
-    st.session_state.last_activity = time.time()
     st.rerun()
