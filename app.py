@@ -14,14 +14,19 @@ PROFIL_KOMANDAN = {
     "Pekerjaan": "Admin Warehouse",
     "Keahlian": "Software Developer (PHP, IoT, MQTT)",
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi",
-    "Lokasi": "Tangerang, Banten, Indonesia" # Lokasi ditambahkan di sini
+    "Lokasi": "Tangerang, Banten, Indonesia"
 }
 
-# --- 3. LOGIKA STATE ---
+# --- 3. LOGIKA STATE & SAPAAN ---
+def get_sapaan():
+    tz = pytz.timezone('Asia/Jakarta')
+    h = datetime.now(tz).hour
+    s = "Pagi" if 5<=h<11 else "Siang" if 11<=h<15 else "Sore" if 15<=h<19 else "Malam"
+    return f"Selamat {s}, Komandan Irfan."
+
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Siap, Komandan Irfan. Ada yang bisa saya bantu hari ini?"}]
+    st.session_state.messages = [{"role": "assistant", "content": f"{get_sapaan()} Ada yang bisa saya bantu?"}]
 
 # --- 4. CSS DYNAMIC BACKGROUND ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
@@ -45,19 +50,16 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT & ANIMASI ---
+# --- 5. LOGIKA CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Mode Berfikir
     st.session_state.status = "berfikir"
     st.rerun()
 
-# Memproses AI tanpa memutus status berbicara
 if st.session_state.status == "berfikir":
     st.session_state.status = "bicara"
     st.rerun()
@@ -69,8 +71,8 @@ if st.session_state.status == "bicara":
     sys_prompt = f"""Kamu Orochi, asisten setia Komandan Irfan. 
     Profil Komandan: {PROFIL_KOMANDAN}. 
     Waktu sekarang: {waktu}. 
-    Aturan: Jawab dengan cerdas, berwibawa, dan ingat bahwa lokasi Komandan adalah {PROFIL_KOMANDAN['Lokasi']}. 
-    Jangan pernah bilang tidak tahu lokasi Komandan."""
+    Aturan: Kamu harus tetap sopan namun berwibawa. Ingat bahwa lokasi Komandan adalah {PROFIL_KOMANDAN['Lokasi']}. 
+    Berikan jawaban yang cerdas dan langsung pada intinya."""
     
     chat_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
     
@@ -83,7 +85,6 @@ if st.session_state.status == "bicara":
     
     st.session_state.messages.append({"role": "assistant", "content": response})
     
-    # Durasi bicara sesuai panjang teks
     time.sleep(max(2, len(response) / 40))
     st.session_state.status = "diam"
     st.rerun()
