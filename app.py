@@ -30,24 +30,23 @@ st.session_state.status = get_orochi_mood()
 # --- 5. CSS BACKGROUND GIF (YANG DITUNGGU-TUNGGU) ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{st.session_state.status}.gif"
 
-st.markdown(f"""
+st.markdown("""
     <style>
-    /* Mengembalikan background GIF agar Orochi muncul kembali */
-    [data-testid="stAppViewContainer"] {{
-        background-image: url('{gif_url}');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }}
-    .stApp {{ background: transparent !important; }}
+    /* Sembunyikan elemen bawaan Streamlit yang memunculkan garis */
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {
+        visibility: hidden !important;
+        display: none !important;
+    }
     
-    /* Bubble chat transparan agar tetap elegan */
-    [data-testid="stChatMessageContent"] {{ 
-        background: rgba(0, 0, 0, 0.6) !important; 
-        color: white !important;
-        border-radius: 15px;
-    }}
-    header, footer {{ visibility: hidden; }}
+    /* Hapus garis yang dihasilkan oleh iframe komponen JS */
+    iframe {
+        display: none !important;
+    }
+
+    /* Pastikan tidak ada padding di bagian atas */
+    .block-container { 
+        padding-top: 0rem !important; 
+    }
     </style>
 """, unsafe_allow_html=True)
 
