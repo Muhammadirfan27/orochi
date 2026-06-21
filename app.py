@@ -15,7 +15,18 @@ PROFIL_KOMANDAN = {
     "Keahlian": "Software Developer (PHP, IoT, MQTT)",
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
-
+# --- 3. LOGIKA LOKASI (JS) ---
+js_location = """
+<script>
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => { window.parent.postMessage({type: 'loc', lat: pos.coords.latitude, lon: pos.coords.longitude}, '*'); },
+            (err) => { window.parent.postMessage({type: 'loc_err'}, '*'); }
+        );
+    }
+</script>
+"""
+components.html(js_location, height=0)
 # --- 3. LOGIKA STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
@@ -81,7 +92,7 @@ if st.session_state.status == "berfikir":
     chat_completion = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_prompt}] + chat_history,
         model="llama-3.1-8b-instant",
-        temperature=0.3
+        temperature=0.1
     )
     response = chat_completion.choices[0].message.content
     
