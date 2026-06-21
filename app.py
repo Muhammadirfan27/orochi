@@ -24,24 +24,22 @@ PROFIL_KOMANDAN = {
 def get_sapaan():
     tz = pytz.timezone('Asia/Jakarta')
     hour = datetime.now(tz).hour
-    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan!"
-    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan!"
-    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan!"
-    return "Selamat malam, Komandan Irfan!"
+    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan. Ada yang bisa saya bantu hari ini?"
+    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan. Apa yang bisa saya bantu untuk Anda?"
+    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan. Apakah ada tugas yang bisa saya kerjakan?"
+    return "Selamat malam, Komandan Irfan. Ada yang bisa saya bantu?"
 
 # 4. INISIALISASI STATE
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # Menggunakan sapaan dinamis berdasarkan waktu
-    welcome_msg = get_sapaan()
-    st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
+    st.session_state.messages.append({"role": "assistant", "content": get_sapaan()})
 
 # 5. TAMPILKAN CHAT
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. LOGIKA CHAT
+# 6. LOGIKA CHAT YANG SOPAN
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -51,9 +49,13 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
         memori_string = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
         
         system_prompt = (
-            f"Kamu Orochi, asisten setia Komandan Irfan. "
-            f"DATA MEMORI PERMANEN:\n{memori_string}\n"
-            "Gaya bicara: santai, WA style, cerdas, setia. Wajib gunakan data di atas untuk menjawab."
+            f"Kamu Orochi, asisten virtual yang cerdas, sopan, dan profesional. "
+            f"DATA MEMORI:\n{memori_string}\n"
+            "INSTRUKSI GAYA BAHASA:\n"
+            "1. Gunakan bahasa yang akrab namun tetap sangat sopan (profesional).\n"
+            "2. Jangan meniru sapaan balik pengguna (misal: jika pengguna bilang 'siang juga', jangan balas 'siang juga').\n"
+            "3. Selalu fokus memberikan solusi atau bantuan yang bermanfaat.\n"
+            "4. Hindari kata 'bos' atau bahasa gaul yang terlalu informal. Gunakan sapaan yang berwibawa."
         )
         
         chat_completion = client.chat.completions.create(
