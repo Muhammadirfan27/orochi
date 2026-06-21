@@ -62,21 +62,28 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT & PERSONA ---
-# 1. Tampilkan riwayat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
     prompt_lower = prompt.lower()
-    # Deteksi Perintah Khusus
-    if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
-        st.session_state.status = "bicara" # Bicara dulu sebelum tidur
-        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpaaa!"})
-    elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower:
+    
+    # LOGIKA BARU: Jika sedang tidur, bangunkan dulu untuk semua jenis input
+    if st.session_state.status == "tidur":
+        if "bye" not in prompt_lower: # Kalau user ngetik apa saja selain bye
+            st.session_state.status = "bicara"
+            st.session_state.messages.append({"role": "assistant", "content": "Eh, Irfan! Orochi bangun. Ada apa nih?"})
+        else:
+            # Kalau sedang tidur tapi disuruh bye lagi
+            st.session_state.messages.append({"role": "assistant", "content": "Iya, aku kan udah tidur, Irfan..."})
+            
+    # LOGIKA BIASA: Jika tidak tidur, cek perintah khusus
+    elif "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
+        st.session_state.status = "bicara"
+        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"})
+    elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower or "bangun" in prompt_lower:
         st.session_state.status = "bicara"
         st.session_state.messages.append({"role": "assistant", "content": "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"})
     else:
@@ -84,31 +91,34 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     
     st.rerun()
 
-# 3. Logika Transisi Status
+# --- SISANYA SAMA SEPERTI KODE SEBELUMNYA ---
 if st.session_state.status == "berfikir":
     time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# 4. Mode Bicara (Stream AI atau Tampilkan Sapaan/Bye)
 if st.session_state.status == "bicara":
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         last_msg = st.session_state.messages[-1]
         
-        # JIKA PESAN TERAKHIR ADALAH SAPAAN ATAU PERPISAHAN (Bukan dari AI)
-        if last_msg.get("role") == "assistant" and len(st.session_state.messages) > 0:
-            # Periksa apakah ini pesan sapaan/bye yang baru saja di-append
+        # Cek apakah pesan terakhir adalah respon sapaan/bye yang kita buat manual
+        if last_msg.get("role") == "assistant" and (
+            "Orochi bangun" in last_msg["content"] or 
+            "Halo" in last_msg["content"] or 
+            "Sampai jumpa" in last_msg["content"] or
+            "tidur" in last_msg["content"]
+        ):
+            # Efek ketik untuk respon manual
             text = last_msg["content"]
             full_response = ""
             for char in text:
                 full_response += char
                 message_placeholder.markdown(full_response + "▌")
-                time.sleep(0.1)
+                time.sleep(0.08)
             message_placeholder.markdown(full_response)
-        
-        # JIKA PERLU JAWABAN AI
         else:
+            # Respon AI biasa
             full_response = ""
             stream = client.chat.completions.create(
                 messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
@@ -124,12 +134,10 @@ if st.session_state.status == "bicara":
             st.session_state.messages.append({"role": "assistant", "content": full_response})
         
         time.sleep(1)
-        
-        # LOGIKA PINDAH KE TIDUR ATAU DIAM
-        # Jika pesan terakhir adalah perpisahan, pindah ke tidur
         if "Sampai jumpa" in last_msg["content"]:
             st.session_state.status = "tidur"
         else:
             st.session_state.status = "diam"
+        st.rerun()
             
         st.rerun()
