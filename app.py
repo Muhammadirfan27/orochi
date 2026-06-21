@@ -7,58 +7,59 @@ import pytz
 # Konfigurasi Halaman
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
-# 1. PENGAMBILAN API KEY DENGAN LOGIKA CADANGAN
-# Mencoba mengambil dari Streamlit Secrets, jika gagal ambil dari environment variable
+# 1. PENGAMBILAN API KEY
 try:
     if "GROQ_API_KEY" in st.secrets:
         api_key = st.secrets["GROQ_API_KEY"]
     else:
+        # Cadangan jika key belum terbaca
         api_key = os.environ.get("GROQ_API_KEY")
         
     if not api_key:
-        raise ValueError("API Key tidak ditemukan!")
+        raise ValueError("API Key belum ditemukan di Secrets!")
         
-    # Inisialisasi client
     client = Groq(api_key=api_key)
 except Exception as e:
     st.error(f"Error Konfigurasi API: {e}")
-    st.info("Pastikan GROQ_API_KEY sudah diisi di Settings > Secrets pada dashboard Streamlit.")
     st.stop()
 
 st.title("Orochi AI")
 
-# Inisialisasi history chat
+# 2. INISIALISASI CHAT HISTORY
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Tampilkan history chat
+# 3. TAMPILKAN HISTORY CHAT
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Input Chat
+# 4. PROSES CHAT
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
-    # Simpan chat user
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate jawaban
     with st.chat_message("assistant"):
+        # Setting waktu Jakarta
         tz = pytz.timezone('Asia/Jakarta')
         now = datetime.now(tz)
         waktu = now.strftime("%A, %d %B %Y (Jam %H:%M WIB)")
         
-        system_prompt = f"Kamu Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. Waktu sekarang: {waktu}. Gaya: santai, WA style, max 2 emoji."
+        system_prompt = (
+            f"Kamu Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. "
+            f"Waktu sekarang: {waktu}. "
+            "Gaya bicara: santai, WA style, jangan kaku, solutif, gunakan maksimal 2 emoji."
+        )
         
         try:
-            chat_completion = # Ganti model lama dengan yang terbaru
-model="llama-3.1-8b-instant"(
+            # Menggunakan model terbaru yang aktif di Groq
+            chat_completion = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant", 
             )
             response = chat_completion.choices[0].message.content
             st.markdown(response)
@@ -66,4 +67,4 @@ model="llama-3.1-8b-instant"(
         except Exception as e:
             st.error(f"Error API: {e}")
             if "401" in str(e):
-                st.warning("Pesan 401 berarti kunci API salah atau tidak terbaca. Coba buat kunci baru di console.groq.com dan update di Secrets!")
+                st.warning("Pesan 401: Kunci API salah. Pastikan kuncinya benar di Settings > Secrets.")
