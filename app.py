@@ -68,7 +68,7 @@ def get_avatar(role):
     if role == "assistant":
         # Gunakan path relatif atau URL yang bisa diakses web
         # Pastikan file ada di folder tersebut dan bisa diakses publik
-        return "templates/orochi.png" 
+        return "templates/Orochi.png" 
     return None
 
 # 1. Tampilkan riwayat chat
