@@ -45,7 +45,7 @@ st.markdown(f"""
     [data-testid="stChatMessageContent"] {{ 
         background: rgba(0, 0, 0, 0.6) !important; 
         color: white !important;
-        border-radius: 15px;
+        border-radius: 1px;
     }}
     header, footer {{ visibility: hidden; }}
     </style>
