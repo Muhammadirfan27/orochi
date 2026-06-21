@@ -1,16 +1,15 @@
 import streamlit as st
-import os
 from groq import Groq
 from datetime import datetime
 import pytz
 
-# 1. Konfigurasi
+# Konfigurasi
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 st.title("Orochi AI")
 
-# 2. PROFIL KOMANDAN
+# Profil
 PROFIL_KOMANDAN = {
     "Nama": "Irfan",
     "Pekerjaan": "Admin Warehouse",
@@ -20,26 +19,22 @@ PROFIL_KOMANDAN = {
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
 
-# 3. FUNGSI SAPAAN WAKTU
+# Fungsi Sapaan Akurat
 def get_sapaan():
     tz = pytz.timezone('Asia/Jakarta')
     hour = datetime.now(tz).hour
-    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan. Ada yang bisa saya bantu hari ini?"
-    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan. Apa yang bisa saya bantu untuk Anda?"
-    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan. Apakah ada tugas yang bisa saya kerjakan?"
+    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan. Ada yang bisa saya bantu?"
+    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan. Ada yang bisa saya bantu?"
+    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan. Ada yang bisa saya bantu?"
     return "Selamat malam, Komandan Irfan. Ada yang bisa saya bantu?"
 
-# 4. INISIALISASI STATE
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-    st.session_state.messages.append({"role": "assistant", "content": get_sapaan()})
+    st.session_state.messages = [{"role": "assistant", "content": get_sapaan()}]
 
-# 5. TAMPILKAN CHAT
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. LOGIKA CHAT YANG SOPAN
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -48,21 +43,18 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
     with st.chat_message("assistant"):
         memori_string = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
         
+        # Instruksi SUPER KETAT
         system_prompt = (
-            f"Kamu Orochi, asisten virtual yang cerdas, sopan, dan profesional. "
-            f"DATA MEMORI:\n{memori_string}\n"
-            "INSTRUKSI GAYA BAHASA:\n"
-            "1. Gunakan bahasa yang akrab namun tetap sangat sopan (profesional).\n"
-            "2. Jangan meniru sapaan balik pengguna (misal: jika pengguna bilang 'siang juga', jangan balas 'siang juga').\n"
-            "3. Selalu fokus memberikan solusi atau bantuan yang bermanfaat.\n"
-            "4. Hindari kata 'bos' atau bahasa gaul yang terlalu informal. Gunakan sapaan yang berwibawa."
+            f"Kamu Orochi, asisten profesional Komandan Irfan. DATA MEMORI: {memori_string}. "
+            "INSTRUKSI UTAMA: "
+            "1. JANGAN PERNAH membalas sapaan pengguna dengan sapaan balik (misal: jika pengguna bilang 'siang', jangan balas 'siang juga'). "
+            "2. Langsung tanyakan kebutuhan pengguna atau jawab pertanyaan mereka dengan sopan, akurat, dan berwibawa. "
+            "3. Gunakan memori yang disediakan untuk data pribadi. "
+            "4. Jangan gunakan kata sapaan pagi/siang/sore di dalam chat setelah sapaan pembuka."
         )
         
         chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
             model="llama-3.1-8b-instant",
         )
         response = chat_completion.choices[0].message.content
