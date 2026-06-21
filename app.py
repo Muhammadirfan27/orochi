@@ -21,7 +21,7 @@ if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
 # --- 4. CSS DENGAN PATH YANG BENAR ---
-# MENGARAHKAN KE FOLDER 'templates/' SEPERTI DI REPO ANDA
+# Menambahkan '/templates/' karena file Anda ada di dalam folder tersebut
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 
 st.markdown(f"""
@@ -50,13 +50,13 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.spinner("Orochi lagi mikir..."):
-        # PERSONA: Santai, teman akrab, tidak kaku
+        # PERSONA: Teman akrab, santai, sopan
         sys_prompt = (
             "Kamu adalah Orochi, teman dekat Irfan. "
             "Gunakan bahasa yang super santai, akrab, dan asik. "
-            "Jangan pernah gunakan bahasa formal atau militer. "
+            "JANGAN gunakan bahasa formal, kaku, atau gaya militer. "
             "Anggap saja kalian lagi nongkrong bareng. "
-            "Jawabannya singkat, padat, dan nggak perlu lebay."
+            "Jawabannya harus natural, singkat, dan seru."
         )
         
         response = client.chat.completions.create(
