@@ -6,91 +6,98 @@ from datetime import datetime
 import pytz
 
 # --- 1. KONFIGURASI ---
-st.set_page_config(page_title="Orochi AI Pet", page_icon="🐍", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Orochi Virtual Pet", page_icon="🐍", layout="wide")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. DATA PROFIL KOMANDAN (MEMORI PERMANEN) ---
+# --- 2. DATA PROFIL ---
 PROFIL_KOMANDAN = {
     "Nama": "Irfan",
     "Pekerjaan": "Admin Warehouse",
-    "Pendidikan": "Mahasiswa Tingkat Akhir",
-    "Alamat": "Jl. Swadaya III, Ciakar, Kec. Panongan, Kabupaten Tangerang, Banten 15710, Perum Golden Residence",
-    "Keahlian": "Software Developer (PHP, IoT, MQTT)",
-    "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
+    "Lokasi": "Panongan, Tangerang",
+    "Keahlian": "Software Developer (PHP, IoT, MQTT)"
 }
 
-# --- 3. FUNGSI PENDUKUNG ---
-def get_location():
-    try:
-        response = requests.get("https://ipapi.co/json/", timeout=5).json()
-        return f"{response.get('city', 'Tangerang')}, {response.get('region', 'Banten')}"
-    except:
-        return "Panongan, Tangerang"
-
-def get_avatar_url(status):
-    # Menggunakan f-string untuk mengambil file yang sesuai di GitHub
-    return f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_{status}.gif"
+# --- 3. FUNGSI ---
+def get_avatar(status):
+    images = {
+        "tidur": "Orochi_tidur.gif",
+        "diam": "Orochi_diam.gif",
+        "berfikir": "Orochi_berfikir.gif",
+        "bicara": "Orochi_bicara.gif"
+    }
+    return images.get(status, "Orochi_diam.gif")
 
 # --- 4. INISIALISASI STATE ---
-if "status" not in st.session_state: st.session_state.status = "diam"
-if "energy" not in st.session_state: st.session_state.energy = 60
+if "energy" not in st.session_state: st.session_state.energy = 50
+if "orochi_awake" not in st.session_state: st.session_state.orochi_awake = False
+if "status" not in st.session_state: st.session_state.status = "tidur"
 if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
-if "location" not in st.session_state: st.session_state.location = get_location()
-if "messages" not in st.session_state: 
-    st.session_state.messages = [{"role": "assistant", "content": "Hai Komandan Irfan! Orochi standby."}]
+if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- 5. LOGIKA AUTO-TIDUR ---
-if time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
+# --- 5. LOGIKA AUTO-TIDUR (10 Detik) ---
+if st.session_state.orochi_awake and time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
     st.session_state.status = "tidur"
 
-# --- 6. CSS (Tanpa Garis/Kotak, Tampilan Bersih) ---
-st.markdown(f"""
-    <style>
-    [data-testid="stAppViewContainer"] {{ padding: 0 !important; }}
-    [data-testid="stHeader"] {{ display: none; }}
-    .stApp {{
-        background-image: url('{get_avatar_url(st.session_state.status)}');
-        background-size: cover; background-position: center; height: 100vh;
-    }}
-    .info-loc {{ color: white; font-weight: bold; padding: 10px; text-shadow: 1px 1px 2px black; }}
-    </style>
-""", unsafe_allow_html=True)
+# --- 6. TAMPILAN BERSIH ---
+st.markdown("<style>div[data-testid='stImage'] {display: flex; justify-content: center;}</style>", unsafe_allow_html=True)
+st.image(get_avatar(st.session_state.status), width=350)
 
-# --- 7. TAMPILAN & LOGIKA CHAT ---
-st.markdown(f"<div class='info-loc'>📍 {st.session_state.location} | ⚡ Energi: {st.session_state.energy}%</div>", unsafe_allow_html=True)
+# --- 7. LOGIKA INTERAKSI ---
+if not st.session_state.orochi_awake:
+    if st.button("Bangunkan Orochi"):
+        st.session_state.orochi_awake = True
+        st.session_state.status = "diam"
+        st.session_state.last_activity = time.time()
+        st.rerun()
+else:
+    col_stat1, col_stat2 = st.columns(2)
+    col_stat1.metric("Energi", f"{st.session_state.energy}%")
+    col_stat2.write(f"Lokasi: {PROFIL_KOMANDAN['Lokasi']}")
 
-# Input Chat
-if prompt := st.chat_input("Perintah untuk Orochi..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "berfikir"
-    st.session_state.last_activity = time.time()
-    st.rerun()
+    c1, c2, c3 = st.columns(3)
+    if c1.button("Sentuh Orochi"):
+        st.session_state.status = "diam"
+        st.session_state.energy = min(100, st.session_state.energy + 10)
+        st.session_state.last_activity = time.time()
+        st.rerun()
+    if c2.button("Beri Perintah"):
+        st.session_state.status = "berfikir"
+        st.rerun()
+    if c3.button("Tidurkan"):
+        st.session_state.status = "tidur"
+        st.session_state.orochi_awake = False
+        st.rerun()
 
-# Logika Transisi Animasi & AI
-if st.session_state.status == "berfikir":
-    time.sleep(3) # Jeda Berfikir
-    st.session_state.status = "bicara"
-    
-    # Memori & Prompt AI dengan Konteks Waktu
-    tz = pytz.timezone('Asia/Jakarta')
-    now = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
-    memori = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
-    system_prompt = f"Kamu Orochi, asisten setia Irfan. Waktu: {now}. Lokasi: {st.session_state.location}. Data: {memori}."
-    
-    response = client.chat.completions.create(
-        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": st.session_state.messages[-1]["content"]}],
-        model="llama-3.1-8b-instant"
-    ).choices[0].message.content
-    
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # Durasi bicara menyesuaikan panjang teks
-    time.sleep(max(2, len(response) / 50))
-    st.session_state.status = "diam"
-    st.session_state.last_activity = time.time()
-    st.rerun()
+    # Chat & Logika Bicara
+    if st.session_state.status in ["berfikir", "bicara"]:
+        prompt = st.chat_input("Apa perintahmu, Komandan?")
+        
+        if st.session_state.status == "berfikir" and prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.status = "bicara"
+            
+            # Panggil AI dengan Konteks Waktu
+            tz = pytz.timezone('Asia/Jakarta')
+            waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
+            memori = f"Nama: {PROFIL_KOMANDAN['Nama']}. Keahlian: {PROFIL_KOMANDAN['Keahlian']}."
+            
+            # Berfikir 1 Detik
+            time.sleep(1)
+            
+            sys_prompt = f"Kamu Orochi. Waktu sekarang: {waktu}. Info user: {memori}"
+            response = client.chat.completions.create(
+                messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}],
+                model="llama-3.1-8b-instant"
+            ).choices[0].message.content
+            
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            # Durasi Bicara sesuai panjang teks
+            time.sleep(max(2, len(response) / 50))
+            st.session_state.status = "diam"
+            st.session_state.last_activity = time.time()
+            st.rerun()
 
-# Tampilkan Chat History
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
