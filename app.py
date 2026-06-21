@@ -75,7 +75,7 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     # Deteksi Perintah Khusus
     if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
         st.session_state.status = "bicara" # Bicara dulu sebelum tidur
-        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"})
+        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpaaa!"})
     elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower:
         st.session_state.status = "bicara"
         st.session_state.messages.append({"role": "assistant", "content": "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"})
