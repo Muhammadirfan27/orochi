@@ -25,13 +25,13 @@ gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templa
 
 st.markdown(f"""
     <style>
-    /* Sembunyikan elemen default */
+    /* 1. Sembunyikan elemen default */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
         visibility: hidden !important; display: none !important;
     }}
     iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
     
-    /* Set Background */
+    /* 2. Set Background */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}') !important;
         background-size: cover !important;
@@ -39,28 +39,23 @@ st.markdown(f"""
         background-attachment: fixed !important;
     }}
     
-    /* MENGHILANGKAN KOTAK CHAT */
+    /* 3. Menghilangkan Kotak Chat */
     [data-testid="stChatMessageContent"] {{
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        color: white !important; /* Agar teks tetap terlihat jelas */
+        color: white !important;
     }}
     
     .stChatMessage {{
         background-color: transparent !important;
     }}
 
-    /* Menghilangkan background container utama chat */
+    /* 4. Menghilangkan background container utama */
     .block-container {{ 
         padding-top: 2rem !important; 
         background: transparent !important; 
     }}
-
-    /* Pastikan GIF selalu berulang */
-[data-testid="stAppViewContainer"] {
-    animation: none !important;
-}
     </style>
 """, unsafe_allow_html=True)
 
@@ -71,40 +66,36 @@ for msg in st.session_state.messages:
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    # 1. Masuk mode berfikir
     st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
-    time.sleep(3) # Jeda berpikir
+    time.sleep(3) 
     st.session_state.status = "bicara"
     st.rerun()
 
 if st.session_state.status == "bicara":
-    # 2. Kita buat placeholder chat_message dulu agar muncul di layar
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
+        full_response = ""
         
-        # 3. Proses AI jalan di sini, gambar sudah 'bicara' karena status sudah berubah
-        sys_prompt = (
-            "Kamu adalah Orochi, teman dekat Irfan. "
-            "Gunakan bahasa yang super santai, akrab, dan asik tapi sopan. "
-            "JANGAN gunakan bahasa formal, kaku, atau gaya militer. "
-            "Anggap saja kalian lagi nongkrong bareng. "
-            "Jawabannya harus natural, singkat, dan seru tapi harus jelas."
+        # Panggil API dengan stream=True untuk efek mengetik
+        stream = client.chat.completions.create(
+            messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages,
+            model="llama-3.1-8b-instant",
+            stream=True
         )
         
-        response = client.chat.completions.create(
-            messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
-            model="llama-3.1-8b-instant"
-        ).choices[0].message.content
+        # Loop untuk menulis teks satu per satu
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                full_response += chunk.choices[0].delta.content
+                message_placeholder.markdown(full_response + "▌")
+                time.sleep(0.03) # Kecepatan mengetik
         
-        # 4. Tampilkan teksnya
-        message_placeholder.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        message_placeholder.markdown(full_response)
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
         
-        # 5. Jeda sedikit supaya animasi bicara terlihat
-        time.sleep(2)
-        
+        # Setelah selesai mengetik, Orochi diam
         st.session_state.status = "diam"
         st.rerun()
