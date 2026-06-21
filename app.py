@@ -8,15 +8,18 @@ import pytz
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. CSS FULLSCREEN (DIPERBAIKI) ---
+# --- CSS UNTUK FULLSCREEN MURNI (TANPA PEMBATAS HITAM) ---
 st.markdown("""
     <style>
-    /* Mengatur kontainer agar bisa menampung gambar sebagai background */
-    .stApp {
-        background-color: #0e1117; /* Fallback warna gelap */
+    /* Menghilangkan background dari seluruh aplikasi */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
     }
     
-    /* Memastikan gambar background menutupi seluruh layar */
+    /* Memaksa gambar latar menjadi Full Screen */
     .bg-orochi {
         position: fixed;
         top: 0;
@@ -24,19 +27,24 @@ st.markdown("""
         width: 100vw;
         height: 100vh;
         object-fit: cover;
-        z-index: -1;
+        z-index: -9999; /* Pastikan di paling belakang */
     }
 
-    /* Membuat chat bubble transparan agar terlihat menyatu */
+    /* Membuat chat transparan agar tidak ada kotak hitam pembatas */
     [data-testid="stChatMessageContent"] {
-        background: rgba(0, 0, 0, 0.6) !important;
+        background: rgba(0, 0, 0, 0.5) !important;
         color: white !important;
+        border-radius: 15px;
+    }
+    
+    /* Menghilangkan header dan ruang kosong di atas */
+    header, [data-testid="stHeader"] {
+        display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDER BACKGROUND ---
-# Menggunakan HTML tag img langsung agar lebih stabil daripada background-image CSS
+# Render gambar sebagai elemen latar belakang
 st.markdown(
     '<img src="https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_diam.jpg" class="bg-orochi">', 
     unsafe_allow_html=True
