@@ -64,13 +64,10 @@ st.markdown(f"""
 # --- 5. LOGIKA CHAT & PERSONA ---
 
 # Fungsi untuk avatar kustom
-# --- AVATAR KUSTOM (PERBAIKAN) ---
 def get_avatar(role):
     if role == "assistant":
-        # Gunakan path relatif atau URL yang bisa diakses web
-        # Pastikan file ada di folder tersebut dan bisa diakses publik
-        return "templates/Orochi.png" 
-    return None
+        return "https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/orochi.png"
+    return None 
 
 # 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
@@ -124,9 +121,13 @@ if st.session_state.status == "bicara":
 
         # Eksekusi AI atau Manual
         if is_ai_mode:
+            # Ambil waktu terkini untuk instruksi sistem
+            waktu_sekarang = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%A, %d %B %Y %H:%M")
+            system_instruction = f"Kamu Orochi, teman dekat Irfan. Sekarang adalah {waktu_sekarang}. Jawab santai, akrab, jelas, dan natural."
+            
             try:
                 stream = client.chat.completions.create(
-                    messages=[{"role": "system", "content": "Kamu Orochi, teman dekat Irfan. Jawab santai, akrab, jelas, dan natural."}] + st.session_state.messages[:-1],
+                    messages=[{"role": "system", "content": system_instruction}] + st.session_state.messages[:-1],
                     model="llama-3.1-8b-instant",
                     stream=True
                 )
