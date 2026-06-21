@@ -66,35 +66,38 @@ for msg in st.session_state.messages:
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
+    # 1. Segera ke mode berfikir dan tampilkan
     st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
     time.sleep(3) # Jeda berpikir
+    
+    # 2. SEBELUM proses AI, ubah status ke 'bicara' dan RE-RUN
+    # Supaya background langsung berubah ke Orochi_bicara.gif
     st.session_state.status = "bicara"
     st.rerun()
 
 if st.session_state.status == "bicara":
-    with st.spinner("Orochi lagi jawab..."):
-        sys_prompt = (
-            "Kamu adalah Orochi, teman dekat Irfan. "
-            "Gunakan bahasa yang super santai, akrab, dan asik tapi sopan. "
-            "JANGAN gunakan bahasa formal, kaku, atau gaya militer. "
-            "Anggap saja kalian lagi nongkrong bareng. "
-            "Jawabannya harus natural, singkat, dan seru tapi harus jelas."
-        )
-        
-        response = client.chat.completions.create(
-            messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
-            model="llama-3.1-8b-instant"
-        ).choices[0].message.content
-        
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        
-        # --- TAMBAHAN: JEDA AGAR GIF BICARA TERLIHAT ---
-        # Kita paksakan tetap di mode 'bicara' selama minimal 2 detik
-        # supaya browser sempat memuat Orochi_bicara.gif
-        time.sleep(2) 
-        
-        st.session_state.status = "diam"
-        st.rerun()
+    # 3. Sekarang kita sudah di mode bicara, baru proses AI
+    # Tanpa spinner yang memblokir, atau gunakan placeholder agar tetap ringan
+    sys_prompt = (
+        "Kamu adalah Orochi, teman dekat Irfan. "
+        "Gunakan bahasa yang super santai, akrab, dan asik tapi sopan. "
+        "JANGAN gunakan bahasa formal, kaku, atau gaya militer. "
+        "Anggap saja kalian lagi nongkrong bareng. "
+        "Jawabannya harus natural, singkat, dan seru tapi harus jelas."
+    )
+    
+    response = client.chat.completions.create(
+        messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
+        model="llama-3.1-8b-instant"
+    ).choices[0].message.content
+    
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    # Jeda sedikit agar user sempat melihat Orochi bicara sambil membaca
+    time.sleep(2) 
+    
+    st.session_state.status = "diam"
+    st.rerun()
