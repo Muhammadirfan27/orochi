@@ -1,42 +1,48 @@
-import os
+import streamlit as st
+from groq import Groq
 from datetime import datetime
 import pytz
-from flask import Flask, request, jsonify, render_template
-from groq import Groq
 
-app = Flask(__name__)
+# Konfigurasi halaman
+st.set_page_config(page_title="Orochi AI", page_icon="🐍")
 
-# Gunakan kunci Groq yang kamu miliki
-client = Groq(api_key="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")
+# Inisialisasi Groq
+# Pastikan di Secrets sudah ada GROQ_API_KEY
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+st.title("Orochi AI")
 
-@app.route('/chat',, methods=['POST'])
-def chat():
-    user_message = request.json.get('message')
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    tz_jakarta = pytz.timezone('Asia/Jakarta')
-    now = datetime.now(tz_jakarta)
-    hari_list = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
-    tanggal_sekarang = now.strftime(f"{hari_list[now.weekday()]}, %d %B %Y (Jam %H:%M WIB)")
+# Menampilkan chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    system_instruction = f"""
-    Kamu adalah Orochi, asisten cerdas dari dunia Acma:Game. 
-    SAAT INI ADALAH: {tanggal_sekarang}. 
-    Panggil user dengan "Komandan Irfan". Gaya bahasa santai WhatsApp, maksimal 2 emoji per balasan.
-    """
+# Input user
+if prompt := st.chat_input("Apa perintahmu, Komandan?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    response = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_message}
-        ]
-    )
-    
-    return jsonify({'reply': response.choices[0].message.content})
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    with st.chat_message("assistant"):
+        tz = pytz.timezone('Asia/Jakarta')
+        now = datetime.now(tz)
+        waktu = now.strftime("%A, %d %B %Y (Jam %H:%M WIB)")
+        
+        system_prompt = f"Kamu adalah Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. Waktu sekarang: {waktu}. Gaya chat: santai, WhatsApp style, max 2 emoji."
+        
+        try:
+            stream = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                model="llama3-8b-8192",
+            )
+            response = stream.choices[0].message.content
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        except Exception as e:
+            st.error(f"Waduh, ada kendala: {e}")
