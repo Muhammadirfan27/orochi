@@ -52,7 +52,8 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
         system_prompt = f"Kamu Orochi, asisten setia Komandan Irfan dari dunia Acma:Game. Waktu sekarang: {waktu}. Gaya: santai, WA style, max 2 emoji."
         
         try:
-            chat_completion = client.chat.completions.create(
+            chat_completion = # Ganti model lama dengan yang terbaru
+model="llama-3.1-8b-instant"(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
