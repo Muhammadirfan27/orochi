@@ -66,16 +66,11 @@ for msg in st.session_state.messages:
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # 1. Masuk ke mode berpikir
     st.session_state.status = "berfikir"
     st.rerun()
 
-# Logika AI berjalan sesuai status
 if st.session_state.status == "berfikir":
     time.sleep(3) # Jeda berpikir
-    
-    # 2. Masuk ke mode bicara
     st.session_state.status = "bicara"
     st.rerun()
 
@@ -96,6 +91,10 @@ if st.session_state.status == "bicara":
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         
-        # 3. Kembali ke mode diam setelah selesai bicara
+        # --- TAMBAHAN: JEDA AGAR GIF BICARA TERLIHAT ---
+        # Kita paksakan tetap di mode 'bicara' selama minimal 2 detik
+        # supaya browser sempat memuat Orochi_bicara.gif
+        time.sleep(2) 
+        
         st.session_state.status = "diam"
         st.rerun()
