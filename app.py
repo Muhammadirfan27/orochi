@@ -2,28 +2,36 @@ import streamlit as st
 from datetime import datetime
 import pytz
 
-# 1. Konfigurasi Halaman
+# 1. Konfigurasi Halaman & CSS Animasi
 st.set_page_config(page_title="Orochi AI", page_icon="🐍")
+st.markdown("""
+    <style>
+    /* Membuat gambar tampak halus saat berganti (efek animasi) */
+    .stImage img {
+        transition: opacity 0.5s ease-in-out;
+        opacity: 1;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # 2. Inisialisasi State
 if "orochi_awake" not in st.session_state: st.session_state.orochi_awake = False
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "menu" not in st.session_state: st.session_state.menu = None
-if "avatar_status" not in st.session_state: st.session_state.avatar_status = "tidur"
 
 # Fungsi untuk Update Gambar
 def update_orochi_avatar(status):
-    st.session_state.avatar_status = status
     images = {
         "tidur": "Orochi_tidur.png",
         "diam": "Orochi_diam.png",
         "berfikir": "Orochi_berfikir.png",
         "bicara": "Orochi_bicara.png"
     }
-    # Menggunakan placeholder agar tidak reload seluruh halaman
+    # Membersihkan placeholder dan menampilkan gambar baru
+    placeholder.empty()
     placeholder.image(images.get(status, "Orochi_diam.png"), width=300)
 
-# PROFIL (Simulator Memori)
+# PROFIL
 PROFIL_KOMANDAN = {
     "Nama": "Irfan",
     "Pekerjaan": "Admin Warehouse",
@@ -34,18 +42,17 @@ PROFIL_KOMANDAN = {
 }
 
 # 3. LOGIKA UI
-placeholder = st.empty() # Placeholder untuk gambar
+placeholder = st.empty() 
 
 if not st.session_state.orochi_awake:
     placeholder.image("Orochi_tidur.png", width=300)
     st.title("Orochi AI")
     if st.button("Bangunkan Orochi"):
         st.session_state.orochi_awake = True
-        update_orochi_avatar("diam")
         st.rerun()
 
 elif not st.session_state.logged_in:
-    update_orochi_avatar("diam")
+    placeholder.image("Orochi_diam.png", width=300)
     st.success("Selamat datang di Orochi! Silakan pilih menu:")
     col1, col2 = st.columns(2)
     with col1:
@@ -64,6 +71,7 @@ else:
     st.title("Orochi AI - Online")
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Halo, Komandan Irfan. Ada yang bisa saya bantu hari ini?"}]
+        placeholder.image("Orochi_diam.png", width=300)
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -74,24 +82,22 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Proses Berfikir
+        # Transisi ke Berfikir
         update_orochi_avatar("berfikir")
         
         with st.chat_message("assistant"):
-            memori_string = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
-            # Simulasi respons (Ganti dengan integrasi API Groq Anda)
+            # Simulasi proses
             response = "Saya sedang memproses data Komandan Irfan mengenai permintaan Anda."
             
-            # Proses Bicara
+            # Transisi ke Bicara
             update_orochi_avatar("bicara")
             st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # Kembali ke posisi diam setelah selesai
+            # Kembali ke posisi diam
             update_orochi_avatar("diam")
 
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.orochi_awake = False
-        update_orochi_avatar("tidur")
         st.rerun()
