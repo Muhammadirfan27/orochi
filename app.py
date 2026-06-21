@@ -92,7 +92,7 @@ if st.session_state.status == "berfikir":
     chat_completion = client.chat.completions.create(
         messages=[{"role": "system", "content": sys_prompt}] + chat_history,
         model="llama-3.1-8b-instant",
-        temperature=0.1
+        temperature=0.3
     )
     response = chat_completion.choices[0].message.content
     
