@@ -67,29 +67,37 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
     prompt_lower = prompt.lower()
     
-    # LOGIKA BARU: Jika sedang tidur, bangunkan dulu untuk semua jenis input
+    # 1. CEK: Apakah dia sedang tidur?
     if st.session_state.status == "tidur":
-        if "bye" not in prompt_lower: # Kalau user ngetik apa saja selain bye
+        # Jika tidur, hanya izinkan perintah bangun
+        if "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower or "bangun" in prompt_lower:
+            st.session_state.messages.append({"role": "user", "content": prompt})
             st.session_state.status = "bicara"
-            st.session_state.messages.append({"role": "assistant", "content": "Eh, Irfan! Orochi bangun. Ada apa nih?"})
+            st.session_state.messages.append({"role": "assistant", "content": "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"})
         else:
-            # Kalau sedang tidur tapi disuruh bye lagi
-            st.session_state.messages.append({"role": "assistant", "content": "Iya, aku kan udah tidur, Irfan..."})
+            # Jika tidur dan input bukan kata kunci bangun, abaikan (jangan append user, jangan rerun)
+            # Anda bisa tambahkan pesan di status bar atau abaikan saja
+            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu.")
+            st.stop() # Menghentikan eksekusi agar tidak terjadi apa-apa
             
-    # LOGIKA BIASA: Jika tidak tidur, cek perintah khusus
-    elif "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
-        st.session_state.status = "bicara"
-        st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"})
-    elif "hallo" in prompt_lower or "halo" in prompt_lower or "hai" in prompt_lower or "bangun" in prompt_lower:
-        st.session_state.status = "bicara"
-        st.session_state.messages.append({"role": "assistant", "content": "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"})
+    # 2. JIKA TIDAK TIDUR (Mode Normal)
     else:
-        st.session_state.status = "berfikir"
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Cek perintah bye
+        if "bye" in prompt_lower or "selamat tinggal" in prompt_lower:
+            st.session_state.status = "bicara"
+            st.session_state.messages.append({"role": "assistant", "content": "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"})
+        else:
+            # Chat biasa
+            st.session_state.status = "berfikir"
     
     st.rerun()
+
+# --- SISANYA SAMA ---
+# (Logika status 'berfikir' dan 'bicara' tetap sama seperti sebelumnya)
 
 # --- SISANYA SAMA SEPERTI KODE SEBELUMNYA ---
 if st.session_state.status == "berfikir":
