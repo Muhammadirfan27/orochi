@@ -2,88 +2,64 @@ import streamlit as st
 import time
 
 # --- 1. KONFIGURASI LAYOUT ---
-# 'wide' dan 'collapsed' sidebar memaksimalkan ruang layar
-st.set_page_config(page_title="Orochi Pet", page_icon="🐍", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Orochi", page_icon="🐍", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS GAME-STYLE (POU INSPIRED) ---
+# --- 2. CSS ABSOLUTE POSITIONING (FULLSCREEN & NYATU) ---
 st.markdown("""
     <style>
-    /* Mengisi seluruh latar belakang */
-    .stApp { background-color: #0e1117; }
+    /* Hilangkan semua padding bawaan Streamlit */
+    [data-testid="stAppViewContainer"] { padding: 0 !important; }
+    [data-testid="stHeader"] { display: none; }
     
-    /* Menghapus padding agar benar-benar penuh */
-    .block-container { 
-        max-width: 100% !important; 
-        padding: 0 !important; 
-        margin: 0 !important;
-    }
-    
-    /* Layer Game Utama: Orochi di atas, Kontrol di bawah */
-    .game-viewport {
+    .orochi-wrapper {
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        justify-content: space-between;
-    }
-    
-    /* Area Orochi */
-    .orochi-display {
-        flex: 1;
-        display: flex;
-        justify-content: center;
         align-items: center;
-        padding: 20px;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+        background-color: #0e1117;
     }
-    .orochi-display img {
-        width: 100% !important;
-        max-width: 500px !important;
+    
+    /* Orochi tidak akan terpotong */
+    .orochi-img {
+        max-width: 90vw;
+        max-height: 60vh;
         border-radius: 40px;
+        margin-bottom: 20px;
     }
     
-    /* Area Panel Kontrol bawah */
-    .control-panel {
-        background: rgba(30, 41, 59, 0.95);
-        padding: 20px;
-        border-top-left-radius: 40px;
-        border-top-right-radius: 40px;
+    /* Kontrol menyatu tepat di bawah Orochi */
+    .controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
     }
     
-    /* Tombol bulat ala Game */
-    div.stButton > button {
-        width: 100%;
-        height: 70px;
-        border-radius: 35px;
-        background-color: #374151;
-        color: white;
-        font-weight: bold;
-        border: 2px solid #4b5563;
+    .input-box {
+        width: 80vw;
+        max-width: 500px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. STATE & FUNGSI ---
+# --- 3. LOGIKA STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 
 def get_avatar(status):
-    images = {
-        "tidur": "Orochi_tidur.gif",
-        "diam": "Orochi_diam.gif",
-        "berfikir": "Orochi_berfikir.gif",
-        "bicara": "Orochi_bicara.gif"
-    }
+    images = {"tidur": "Orochi_tidur.gif", "diam": "Orochi_diam.gif", "berfikir": "Orochi_berfikir.gif", "bicara": "Orochi_bicara.gif"}
     return images.get(status, "Orochi_diam.gif")
 
 # --- 4. RENDER LAYOUT ---
-st.markdown("<div class='game-viewport'>", unsafe_allow_html=True)
+st.markdown("<div class='orochi-wrapper'>", unsafe_allow_html=True)
 
-# Area Karakter
-st.markdown("<div class='orochi-display'>", unsafe_allow_html=True)
-st.image(get_avatar(st.session_state.status))
-st.markdown("</div>", unsafe_allow_html=True)
+# Orochi
+st.image(get_avatar(st.session_state.status), use_container_width=False, output_format="GIF")
+# Tambahkan class CSS manual via st.markdown karena st.image terbatas
+st.markdown(f"<style>.stImage img {{ max-width: 80vw !important; max-height: 50vh !important; border-radius: 30px; }}</style>", unsafe_allow_html=True)
 
-# Area Panel Bawah
-st.markdown("<div class='control-panel'>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns(3)
+# Kontrol menyatu
+col1, col2, col3 = st.columns([1,1,1])
 with col1:
     if st.button("❤️"): st.session_state.status = "diam"; st.rerun()
 with col2:
@@ -91,15 +67,15 @@ with col2:
 with col3:
     if st.button("💤"): st.session_state.status = "tidur"; st.rerun()
 
+# Perintah menyatu
 prompt = st.text_input("", placeholder="Perintah untuk Orochi...")
 if prompt:
     st.session_state.status = "bicara"
     st.rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
 
-# Auto Reset status setelah 3 detik
+# Auto Reset
 if st.session_state.status in ["berfikir", "bicara"]:
     time.sleep(3)
     st.session_state.status = "diam"
