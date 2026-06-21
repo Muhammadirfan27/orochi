@@ -9,16 +9,15 @@ from streamlit_js_eval import streamlit_js_eval
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- CSS FULL-SCREEN & PEMBERSIH GARIS ---
-# Menghapus garis dengan CSS yang lebih spesifik
+# --- CSS BERSIH (TANPA GARIS) ---
 st.markdown("""
     <style>
-    /* Paksa background full */
+    /* Paksa background agar full dan menutup layar */
     [data-testid="stAppViewContainer"] {
         background-size: cover; background-position: center; background-attachment: fixed;
     }
     
-    /* Hapus elemen bawaan yang sering memunculkan garis */
+    /* Hilangkan semua elemen header/footer bawaan */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"] {
         visibility: hidden !important;
         display: none !important;
@@ -28,7 +27,7 @@ st.markdown("""
     hr { display: none !important; }
     .stChatInputContainer { border: none !important; }
     
-    /* Pastikan tidak ada margin atas */
+    /* Hapus ruang kosong di atas */
     .block-container { padding-top: 0rem !important; }
     </style>
 """, unsafe_allow_html=True)
@@ -50,8 +49,7 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.spinner("Orochi memproses..."):
-        # Penjelasan sistem yang menyertakan lokasi
-        sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi Terdeteksi: {st.session_state.lokasi_tersimpan}."
+        sys_prompt = f"Nama: Orochi. Komandan: Irfan. Lokasi Terdeteksi: {st.session_state.lokasi_tersimpan}. Jawab cerdas dan berwibawa."
         response = client.chat.completions.create(
             messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
             model="llama-3.1-8b-instant"
@@ -60,5 +58,5 @@ if prompt := st.chat_input("Perintah untuk Orochi..."):
         st.rerun()
 
 # --- NOTIFIKASI PROAKTIF ---
-if time.time() % 3600 < 5: # Simulasi notifikasi per jam
+if time.time() % 3600 < 5: 
     st.toast("Orochi: Saya tetap siaga memantau koordinat Komandan.")
