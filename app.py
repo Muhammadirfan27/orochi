@@ -67,16 +67,20 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # 1. Langsung ganti status dan RE-RUN agar GIF berubah detik itu juga
+    # 1. Masuk ke mode berpikir
     st.session_state.status = "berfikir"
     st.rerun()
 
-# 2. Blok ini akan jalan SETELAH rerun pertama
+# Logika AI berjalan sesuai status
 if st.session_state.status == "berfikir":
-    # Sekarang GIF 'berfikir' sudah muncul, baru kita kasih jeda 3 detik
-    time.sleep(3)
+    time.sleep(3) # Jeda berpikir
     
-    with st.spinner("Orochi lagi mikir..."):
+    # 2. Masuk ke mode bicara
+    st.session_state.status = "bicara"
+    st.rerun()
+
+if st.session_state.status == "bicara":
+    with st.spinner("Orochi lagi jawab..."):
         sys_prompt = (
             "Kamu adalah Orochi, teman dekat Irfan. "
             "Gunakan bahasa yang super santai, akrab, dan asik tapi sopan. "
@@ -92,6 +96,6 @@ if st.session_state.status == "berfikir":
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         
-        # Kembali ke mode diam
+        # 3. Kembali ke mode diam setelah selesai bicara
         st.session_state.status = "diam"
         st.rerun()
