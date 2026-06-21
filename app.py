@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-import requests
 from groq import Groq
 from datetime import datetime
 import pytz
@@ -19,37 +18,34 @@ PROFIL_KOMANDAN = {
 
 # --- 3. FUNGSI ---
 def get_avatar(status):
-    images = {
-        "tidur": "Orochi_tidur.gif",
-        "diam": "Orochi_diam.gif",
-        "berfikir": "Orochi_berfikir.gif",
-        "bicara": "Orochi_bicara.gif"
-    }
-    return images.get(status, "Orochi_diam.gif")
+    return f"Orochi_{status}.gif" # Pastikan file tersedia di folder/github
+
+def get_greeting():
+    hour = datetime.now(pytz.timezone('Asia/Jakarta')).hour
+    if 5 <= hour < 12: return "Selamat Pagi, Komandan Irfan!"
+    if 12 <= hour < 15: return "Selamat Siang, Komandan Irfan!"
+    if 15 <= hour < 18: return "Selamat Sore, Komandan Irfan!"
+    return "Selamat Malam, Komandan Irfan!"
 
 # --- 4. INISIALISASI STATE ---
 if "energy" not in st.session_state: st.session_state.energy = 50
 if "orochi_awake" not in st.session_state: st.session_state.orochi_awake = False
 if "status" not in st.session_state: st.session_state.status = "tidur"
-if "last_activity" not in st.session_state: st.session_state.last_activity = time.time()
-if "messages" not in st.session_state: st.session_state.messages = []
+if "messages" not in st.session_state: 
+    st.session_state.messages = [{"role": "assistant", "content": get_greeting()}]
 
-# --- 5. LOGIKA AUTO-TIDUR (10 Detik) ---
-if st.session_state.orochi_awake and time.time() - st.session_state.last_activity > 10 and st.session_state.status == "diam":
-    st.session_state.status = "tidur"
-
-# --- 6. TAMPILAN BERSIH ---
+# --- 5. TAMPILAN BERSIH ---
 st.markdown("<style>div[data-testid='stImage'] {display: flex; justify-content: center;}</style>", unsafe_allow_html=True)
 st.image(get_avatar(st.session_state.status), width=350)
 
-# --- 7. LOGIKA INTERAKSI ---
+# --- 6. LOGIKA INTERAKSI ---
 if not st.session_state.orochi_awake:
     if st.button("Bangunkan Orochi"):
         st.session_state.orochi_awake = True
         st.session_state.status = "diam"
-        st.session_state.last_activity = time.time()
         st.rerun()
 else:
+    # Status Bar
     col_stat1, col_stat2 = st.columns(2)
     col_stat1.metric("Energi", f"{st.session_state.energy}%")
     col_stat2.write(f"Lokasi: {PROFIL_KOMANDAN['Lokasi']}")
@@ -58,7 +54,6 @@ else:
     if c1.button("Sentuh Orochi"):
         st.session_state.status = "diam"
         st.session_state.energy = min(100, st.session_state.energy + 10)
-        st.session_state.last_activity = time.time()
         st.rerun()
     if c2.button("Beri Perintah"):
         st.session_state.status = "berfikir"
@@ -76,26 +71,22 @@ else:
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.session_state.status = "bicara"
             
-            # Panggil AI dengan Konteks Waktu
-            tz = pytz.timezone('Asia/Jakarta')
-            waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
-            memori = f"Nama: {PROFIL_KOMANDAN['Nama']}. Keahlian: {PROFIL_KOMANDAN['Keahlian']}."
-            
             # Berfikir 1 Detik
             time.sleep(1)
             
-            sys_prompt = f"Kamu Orochi. Waktu sekarang: {waktu}. Info user: {memori}"
+            # Panggil AI
+            tz = pytz.timezone('Asia/Jakarta')
+            waktu = datetime.now(tz).strftime("%H:%M")
+            sys_prompt = f"Kamu Orochi. Waktu sekarang: {waktu}. User: {PROFIL_KOMANDAN['Nama']}."
+            
             response = client.chat.completions.create(
                 messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}],
                 model="llama-3.1-8b-instant"
             ).choices[0].message.content
             
             st.session_state.messages.append({"role": "assistant", "content": response})
-            
-            # Durasi Bicara sesuai panjang teks
             time.sleep(max(2, len(response) / 50))
             st.session_state.status = "diam"
-            st.session_state.last_activity = time.time()
             st.rerun()
 
     for msg in st.session_state.messages:
