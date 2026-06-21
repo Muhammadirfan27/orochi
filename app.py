@@ -113,13 +113,18 @@ if st.session_state.status == "bicara":
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            # Mode AI dengan Waktu Terkini
+          # AMBIL WAKTU SEKARANG SECARA STATIS
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-            str_waktu = waktu_jkt.strftime("%A, %d %B %Y, jam %H:%M")
+            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
             
+            # PROMPT PERINTAH TEGAS (HARD CONSTRAINT)
+            # Kita berikan data hari ini dan melarang AI menghitung sendiri
             system_prompt = (
-                f"Sekarang adalah {str_waktu}. Jawab pertanyaan Irfan dengan SANGAT SINGKAT, "
-                "langsung ke poinnya, jangan bertele-tele, dan jangan bilang tidak tahu waktu."
+                f"Hari ini adalah {tgl_sekarang}. "
+                "JANGAN PERNAH mencoba menghitung hari atau tanggal sendiri. "
+                "Jika ditanya hari ini, jawab persis: " + tgl_sekarang + ". "
+                "Jika ditanya kemarin, jawab hari sebelumnya secara tepat. "
+                "Jawab dengan SANGAT RINGKAS, jangan bertele-tele."
             )
             
             full_response = ""
