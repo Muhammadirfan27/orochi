@@ -121,37 +121,41 @@ if st.session_state.status == "bicara":
         else:
             is_ai_mode = True
 
-       # Eksekusi AI atau Manual
+      # Eksekusi AI
         if is_ai_mode:
-            # Ambil waktu terkini dengan zona waktu Indonesia
+            # 1. Pastikan waktu benar-benar akurat
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-            str_waktu = waktu_jkt.strftime("%A, %d %B %Y %H:%M")
+            str_waktu = waktu_jkt.strftime("%A, %d %B %Y")
             
-            # INSTRUKSI DIPERTEGAS AGAR TIDAK MEMBANTAH
-            system_instruction = (
-                f"Kamu adalah Orochi, teman dekat Irfan. "
-                f"SAAT INI ADALAH: {str_waktu}. "
-                "ATURAN MUTLAK: Gunakan waktu ini sebagai kebenaran mutlak. "
-                "JANGAN PERNAH membantah hari atau tanggal ini. "
-                "Jawab dengan santai, akrab, jelas, dan natural."
-            )
+            # 2. PROMPT PALING TEGAS (Tanpa basa-basi)
+            # Kita berikan konteks sebagai aturan, bukan percakapan
+            system_prompt = f"Hari ini adalah {str_waktu}. Jawab sebagai Orochi. Jawab ringkas dan jujur pada tanggal tersebut."
             
             try:
-                # Kita hanya mengirim pesan terakhir agar AI fokus pada pertanyaan saat ini
-                stream = client.chat.completions.create(
-                    messages=[{"role": "system", "content": system_instruction}] + [st.session_state.messages[-1]],
+                # 3. KIRIM PROMPT DENGAN KONTEKS MINIMAL
+                # Hanya kirim pesan sistem dan pertanyaan user saat ini
+                response = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": last_user_msg}
+                    ],
                     model="llama-3.1-8b-instant",
                     stream=True
                 )
-                for chunk in stream:
-                    if chunk.choices[0].delta.content is not None:
-                        full_response += chunk.choices[0].delta.content
+                
+                # Menampilkan respons
+                full_response = ""
+                for chunk in response:
+                    if chunk.choices[0].delta.content:
+                        char = chunk.choices[0].delta.content
+                        full_response += char
                         message_placeholder.markdown(full_response + "▌")
-                        time.sleep(0.13)
+                        time.sleep(0.05) # Kecepatan ketik lebih stabil
+                
                 konten_bicara = full_response
+                
             except Exception as e:
-                konten_bicara = "Aduh, koneksiku lagi agak lemot nih, Irfan. Coba tanya sekali lagi ya!"        
-        # Akhiri proses pengetikan
+                konten_bicara = "Aduh, koneksiku lagi gangguan, Irfan."        # Akhiri proses pengetikan
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
