@@ -27,7 +27,7 @@ st.title("Orochi AI")
 # 2. INISIALISASI CHAT & PESAN SAMBUTAN
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    welcome_msg = "Hai, aku Orochi, asisten setia Komandan Irfan di dunia Acma:Game! 🤖 Saya disini untuk membantu dan menyediakan informasi yang kamu butuhkan. Semoga hari kamu menyenangkan!"
+    welcome_msg = "Hai, aku Orochi, asisten setia Pak Irfan  🤖 Saya disini untuk membantu dan menyediakan informasi yang kamu butuhkan. Semoga hari kamu menyenangkan!"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
 # 3. TAMPILKAN HISTORY
