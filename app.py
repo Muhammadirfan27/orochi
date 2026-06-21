@@ -5,87 +5,69 @@ from datetime import datetime
 import pytz
 
 # --- 1. KONFIGURASI ---
-st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
+# Gunakan layout="wide" agar lebih fleksibel
+st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="wide")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --- 2. DATA PROFIL ---
-PROFIL_KOMANDAN = {
-    "Nama": "Irfan",
-    "Pekerjaan": "Admin Warehouse",
-    "Keahlian": "Software Developer (PHP, IoT, MQTT)",
-    "Hobi": "Esports (Inferno Demons), Anime Kekkaishi",
-    "Lokasi": "Panongan, Tangerang"
-}
-
-# --- 3. CSS "PURE FULLSCREEN" (REVISI BERSIH) ---
+# --- 2. CSS CUSTOM UNTUK TAMPILAN FULLSCREEN ---
+# Ini adalah kunci untuk membuat gambar Orochi jadi background sejati
 st.markdown("""
     <style>
-    /* Mengatur background gif untuk seluruh halaman */
-    [data-testid="stAppViewContainer"] {
-        background-image: url('https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_diam.gif');
+    /* Mengatur gambar sebagai background utama */
+    .stApp {
+        background: url('https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/Orochi_diam.jpg') no-repeat center center fixed;
         background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
     }
 
-    /* Menghilangkan semua warna background default Streamlit */
-    .stApp, .block-container, [data-testid="stMainBlockContainer"] {
+    /* Menghilangkan semua background putih/gelap dari elemen Streamlit */
+    .stApp, .block-container {
         background: transparent !important;
     }
 
-    /* Membuat chat bubble lebih minimalis dan transparan */
+    /* Membuat bubble chat menjadi transparan agar Orochi tetap terlihat di baliknya */
     [data-testid="stChatMessageContent"] {
         background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1);
         color: #ffffff !important;
+        border-radius: 15px;
     }
 
-    /* Menghilangkan header, footer, dan margin atas */
-    header, footer, [data-testid="stHeader"] {
+    /* Menghilangkan header dan footer agar layar bersih */
+    header, footer {
         visibility: hidden;
-        height: 0;
     }
-    
-    .block-container {
-        padding-top: 1rem !important;
+
+    /* Memastikan input chat tetap terlihat jelas */
+    [data-testid="stChatInput"] {
+        background: rgba(0, 0, 0, 0.6) !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. INISIALISASI & LOGIKA ---
+# --- 3. LOGIKA CHAT ---
+# Inisialisasi pesan
 if "messages" not in st.session_state:
-    tz = pytz.timezone('Asia/Jakarta')
-    h = datetime.now(tz).hour
-    s = "Pagi" if 5<=h<11 else "Siang" if 11<=h<15 else "Sore" if 15<=h<19 else "Malam"
-    st.session_state.messages = [{"role": "assistant", "content": f"Selamat {s}, Komandan Irfan. Ada yang bisa saya bantu?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Halo Irfan, Orochi siap melayani."}]
 
-# --- 5. LOGIKA CHAT ---
+# Tampilkan riwayat chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+# Input Chat
 if prompt := st.chat_input("Perintah untuk Orochi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Mode Berfikir & Respon
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Proses AI
     with st.chat_message("assistant"):
-        tz = pytz.timezone('Asia/Jakarta')
-        waktu = datetime.now(tz).strftime("%A, %d %B %Y %H:%M")
+        # Tambahkan konteks lokasi dan profil agar tidak "ngawur"
+        sys_prompt = "Kamu adalah Orochi, asisten setia Irfan, Admin Warehouse yang ahli di IoT & MQTT. Lokasi Irfan saat ini adalah Panongan, Tangerang. Jawab dengan singkat, cerdas, dan jangan pernah lupa lokasi atau profil Irfan."
         
-        sys_prompt = f"""Kamu Orochi, asisten setia Komandan Irfan. 
-        Profil Komandan: {PROFIL_KOMANDAN}. 
-        Waktu sekarang: {waktu}. 
-        Aturan: Berikan jawaban yang cerdas, berwibawa, singkat, dan ingat bahwa lokasi Komandan adalah {PROFIL_KOMANDAN['Lokasi']}. 
-        Jangan gunakan sapaan berulang, langsung jawab inti pertanyaan."""
-        
-        chat_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-        
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "system", "content": sys_prompt}] + chat_history,
+        stream = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            temperature=0.3
+            messages=[{"role": "system", "content": sys_prompt}] + st.session_state.messages,
+            stream=True,
         )
-        response = chat_completion.choices[0].message.content
-        st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        response = st.write_stream(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
