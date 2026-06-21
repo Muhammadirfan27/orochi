@@ -10,8 +10,7 @@ client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 st.title("Orochi AI")
 
-# 2. PROFIL KOMANDAN (MEMORI PERMANEN)
-# Semua informasi penting tersimpan di sini
+# 2. PROFIL KOMANDAN
 PROFIL_KOMANDAN = {
     "Nama": "Irfan",
     "Pekerjaan": "Admin Warehouse",
@@ -21,51 +20,49 @@ PROFIL_KOMANDAN = {
     "Hobi": "Esports (Inferno Demons), Anime Kekkaishi"
 }
 
-# 3. INISIALISASI STATE
+# 3. FUNGSI SAPAAN WAKTU
+def get_sapaan():
+    tz = pytz.timezone('Asia/Jakarta')
+    hour = datetime.now(tz).hour
+    if 5 <= hour < 11: return "Selamat pagi, Komandan Irfan!"
+    if 11 <= hour < 15: return "Selamat siang, Komandan Irfan!"
+    if 15 <= hour < 19: return "Selamat sore, Komandan Irfan!"
+    return "Selamat malam, Komandan Irfan!"
+
+# 4. INISIALISASI STATE
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    welcome_msg = "Hai Komandan Irfan! Orochi sudah mengingat semua data Anda. Siap membantu hari ini?"
+    # Menggunakan sapaan dinamis berdasarkan waktu
+    welcome_msg = get_sapaan()
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
-# 4. TAMPILKAN HISTORY
+# 5. TAMPILKAN CHAT
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 5. LOGIKA CHAT DENGAN MEMORI
+# 6. LOGIKA CHAT
 if prompt := st.chat_input("Apa perintahmu, Komandan?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        tz = pytz.timezone('Asia/Jakarta')
-        now = datetime.now(tz)
-        waktu = now.strftime("%A, %d %B %Y (Jam %H:%M WIB)")
-        
-        # Mengonstruksi konteks memori
         memori_string = "\n".join([f"- {k}: {v}" for k, v in PROFIL_KOMANDAN.items()])
         
         system_prompt = (
-            f"Kamu adalah Orochi, asisten setia Komandan Irfan. "
-            f"WAKTU SAAT INI: {waktu}. "
-            f"DATA MEMORI PERMANEN KOMANDAN:\n{memori_string}\n"
-            "INSTRUKSI:\n"
-            "1. Selalu gunakan data di atas untuk menjawab setiap pertanyaan tentang identitas atau lokasi Komandan.\n"
-            "2. Jangan pernah berhalusinasi atau menebak-nebak jika data sudah ada di atas.\n"
-            "3. Gaya bicara: santai, WA style, cerdas, dan setia."
+            f"Kamu Orochi, asisten setia Komandan Irfan. "
+            f"DATA MEMORI PERMANEN:\n{memori_string}\n"
+            "Gaya bicara: santai, WA style, cerdas, setia. Wajib gunakan data di atas untuk menjawab."
         )
         
-        try:
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                model="llama-3.1-8b-instant",
-            )
-            response = chat_completion.choices[0].message.content
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
-        except Exception as e:
-            st.error(f"Error: {e}")
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.1-8b-instant",
+        )
+        response = chat_completion.choices[0].message.content
+        st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
