@@ -20,24 +20,42 @@ st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. CSS DENGAN PATH YANG BENAR ---
-# Menambahkan '/templates/' karena file Anda ada di dalam folder tersebut
+# --- 4. CSS DENGAN PATH YANG BENAR & CHAT TRANSPARAN ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 
 st.markdown(f"""
     <style>
+    /* Sembunyikan elemen default */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
         visibility: hidden !important; display: none !important;
     }}
     iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
     
+    /* Set Background */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}') !important;
         background-size: cover !important;
         background-position: center !important;
         background-attachment: fixed !important;
     }}
-    .block-container {{ padding-top: 2rem !important; background: rgba(0,0,0,0.2); border-radius: 20px; }}
+    
+    /* MENGHILANGKAN KOTAK CHAT */
+    [data-testid="stChatMessageContent"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: white !important; /* Agar teks tetap terlihat jelas */
+    }}
+    
+    .stChatMessage {{
+        background-color: transparent !important;
+    }}
+
+    /* Menghilangkan background container utama chat */
+    .block-container {{ 
+        padding-top: 2rem !important; 
+        background: transparent !important; 
+    }}
     </style>
 """, unsafe_allow_html=True)
 
