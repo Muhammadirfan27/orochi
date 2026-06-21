@@ -56,6 +56,11 @@ st.markdown(f"""
         padding-top: 2rem !important; 
         background: transparent !important; 
     }}
+
+    /* Pastikan GIF selalu berulang */
+[data-testid="stAppViewContainer"] {
+    animation: none !important;
+}
     </style>
 """, unsafe_allow_html=True)
 
