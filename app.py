@@ -43,7 +43,7 @@ if prompt := st.chat_input("Apa perintahmu, Komandan?"):
         now = datetime.now(tz)
         
         system_prompt = (
-            f"Kamu Orochi, asisten setia Komandan Irfan. "
+            f"Kamu Orochi, asisten setia Pak Irfan. "
             f"DATA GPS REAL-TIME: {lokasi_info}. "
             "Gaya bicara: santai, WA style, cerdas. Jika ditanya lokasi, gunakan data GPS ini."
         )
