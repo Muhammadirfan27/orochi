@@ -16,84 +16,140 @@ if "messages" not in st.session_state:
 
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
+st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
-    st.session_state.lokasi = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
-else:
-    st.session_state.lokasi = "Panongan, Tangerang"
+    st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. CSS ---
+# --- 4. CSS DENGAN PATH YANG BENAR & CHAT TRANSPARAN ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 
 st.markdown(f"""
     <style>
-    header, footer, [data-testid="stHeader"] {{ visibility: hidden !important; }}
+    /* 1. Sembunyikan elemen default */
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
+        visibility: hidden !important; display: none !important;
+    }}
+    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
+    
+    /* 2. Set Background */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}') !important;
-        background-size: cover !important; background-attachment: fixed !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
+        will-change: background-image;
+        backface-visibility: hidden;
     }}
-    [data-testid="stChatMessageContent"] {{ background-color: rgba(0,0,0,0.5) !important; color: white !important; border-radius: 15px; }}
+    
+    /* 3. Menghilangkan Kotak Chat */
+    [data-testid="stChatMessageContent"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: white !important;
+    }}
+    
+    .stChatMessage {{
+        background-color: transparent !important;
+    }}
+
+    /* 4. Menghilangkan background container utama */
+    .block-container {{ 
+        padding-top: 2rem !important; 
+        background: transparent !important; 
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
-def get_avatar(role):
-    return "templates/Orochi.png" if role == "assistant" else None
+# --- 5. LOGIKA CHAT & PERSONA ---
 
-# Tampilkan history
+# --- AVATAR KUSTOM (PERBAIKAN) ---
+def get_avatar(role):
+    if role == "assistant":
+        # Gunakan path relatif atau URL yang bisa diakses web
+        # Pastikan file ada di folder tersebut dan bisa diakses publik
+        return "templates/Orochi.png" 
+    return None
+
+# 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])):
         st.markdown(msg["content"])
 
-# Input User
+# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    if st.session_state.status == "tidur" and not any(w in prompt.lower() for w in ["hallo", "halo", "bangun"]):
-        st.warning("Orochi masih tidur. Bilang 'bangun' dulu ya.")
-        st.stop()
+    prompt_lower = prompt.lower()
     
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "berfikir"
+    if st.session_state.status == "tidur":
+        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.status = "bicara"
+        else:
+            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
+            st.stop()
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
+            st.session_state.status = "bicara"
+        else:
+            st.session_state.status = "berfikir"
     st.rerun()
 
-# --- 6. LOGIKA AI & TRANSISI ---
+# 3. Logika Transisi
 if st.session_state.status == "berfikir":
+    time.sleep(1) 
+    st.session_state.status = "bicara"
+    st.rerun()
+
+# 4. Mode Bicara
+if st.session_state.status == "bicara":
     with st.chat_message("assistant", avatar=get_avatar("assistant")):
         message_placeholder = st.empty()
+        last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Waktu & Konteks
-        waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%A, %d %B %Y %H:%M")
-        
-        # System Persona
-        system_prompt = f"""Kamu adalah Orochi, AI asisten pribadi Irfan. 
-        Lokasi saat ini: {st.session_state.lokasi}. Waktu saat ini: {waktu_jkt}.
-        Kepribadian: Cerdas, santai, setia, dan sedikit misterius.
-        Aturan: Jawab dengan sangat ringkas, gunakan bahasa Indonesia yang luwes, jangan bertele-tele."""
-
-        # Mengambil 10 pesan terakhir untuk memori (Kecerdasan Konteks)
-        context = st.session_state.messages[-10:]
-        
-        try:
-            stream = client.chat.completions.create(
-                messages=[{"role": "system", "content": system_prompt}] + context,
-                model="llama-3.1-8b-instant",
-                stream=True
+        # Penentuan Konten Manual
+        if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
+            konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
+        elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
+            konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
+        else:
+          # AMBIL WAKTU SEKARANG SECARA STATIS
+            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
+            
+            # PROMPT PERINTAH TEGAS (HARD CONSTRAINT)
+            # Kita berikan data hari ini dan melarang AI menghitung sendiri
+            system_prompt = (
+                f"Hari ini adalah {tgl_sekarang}. "
+                "JANGAN PERNAH mencoba menghitung hari atau tanggal sendiri. "
+                "Jika ditanya hari ini, jawab persis: " + tgl_sekarang + ". "
+                "Jika ditanya kemarin, jawab hari sebelumnya secara tepat. "
+                "Jawab dengan SANGAT RINGKAS, jangan bertele-tele."
             )
             
             full_response = ""
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    full_response += chunk.choices[0].delta.content
-                    message_placeholder.markdown(full_response + "▌")
-            
-            message_placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
-            # Transisi status
-            if any(w in full_response.lower() for w in ["istirahat", "tidur", "sampai jumpa"]):
-                st.session_state.status = "tidur"
-            else:
-                st.session_state.status = "diam"
-            st.rerun()
-            
-        except Exception as e:
-            st.error("Orochi sedang kehilangan sinyal...")
-            st.session_state.status = "diam"
+            try:
+                stream = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": last_user_msg}
+                    ],
+                    model="llama-3.1-8b-instant",
+                    stream=True
+                )
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        full_response += chunk.choices[0].delta.content
+                        message_placeholder.markdown(full_response + "▌")
+                        time.sleep(0.03) # Kecepatan ketik stabil
+                konten_bicara = full_response
+            except Exception:
+                konten_bicara = f"Sekarang {str_waktu}. Ada lagi yang ingin ditanyakan?"
+
+        # Finalisasi
+        message_placeholder.markdown(konten_bicara)
+        st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
+        
+        time.sleep(1)
+        st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
+        st.rerun()
