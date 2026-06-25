@@ -7,6 +7,7 @@ from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
+# Pastikan API key sudah diatur di Streamlit Secrets
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 # --- 2. INITIAL STATE ---
@@ -20,63 +21,34 @@ st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. CSS DENGAN PATH YANG BENAR & CHAT TRANSPARAN ---
+# --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 
 st.markdown(f"""
     <style>
-    /* 1. Sembunyikan elemen default */
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
         visibility: hidden !important; display: none !important;
     }}
-    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
-    
-    /* 2. Set Background */
     [data-testid="stAppViewContainer"] {{
         background-image: url('{gif_url}') !important;
         background-size: cover !important;
         background-position: center !important;
         background-attachment: fixed !important;
-        will-change: background-image;
-        backface-visibility: hidden;
     }}
-    
-    /* 3. Menghilangkan Kotak Chat */
-    [data-testid="stChatMessageContent"] {{
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: white !important;
-    }}
-    
-    .stChatMessage {{
-        background-color: transparent !important;
-    }}
-
-    /* 4. Menghilangkan background container utama */
-    .block-container {{ 
-        padding-top: 2rem !important; 
-        background: transparent !important; 
-    }}
+    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; }}
+    .stChatMessage {{ background-color: transparent !important; }}
+    .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 5. LOGIKA CHAT & PERSONA ---
-
-# --- AVATAR KUSTOM (PERBAIKAN) ---
 def get_avatar(role):
-    if role == "assistant":
-        # Gunakan path relatif atau URL yang bisa diakses web
-        # Pastikan file ada di folder tersebut dan bisa diakses publik
-        return "templates/Orochi.png" 
-    return None
+    return "templates/Orochi.png" if role == "assistant" else None
 
-# 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])):
         st.markdown(msg["content"])
 
-# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
     prompt_lower = prompt.lower()
     
@@ -89,42 +61,29 @@ if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
             st.stop()
     else:
         st.session_state.messages.append({"role": "user", "content": prompt})
-        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
-            st.session_state.status = "bicara"
-        else:
-            st.session_state.status = "berfikir"
+        st.session_state.status = "berfikir"
     st.rerun()
 
-# 3. Logika Transisi
 if st.session_state.status == "berfikir":
     time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# 4. Mode Bicara
 if st.session_state.status == "bicara":
     with st.chat_message("assistant", avatar=get_avatar("assistant")):
         message_placeholder = st.empty()
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Penentuan Konten Manual
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-          # AMBIL WAKTU SEKARANG SECARA STATIS
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
             tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
             
-            # PROMPT PERINTAH TEGAS (HARD CONSTRAINT)
-            # Kita berikan data hari ini dan melarang AI menghitung sendiri
             system_prompt = (
-                f"Hari ini adalah {tgl_sekarang}. "
-                "JANGAN PERNAH mencoba menghitung hari atau tanggal sendiri. "
-                "Jika ditanya hari ini, jawab persis: " + tgl_sekarang + ". "
-                "Jika ditanya kemarin, jawab hari sebelumnya secara tepat. "
-                "Jawab dengan SANGAT RINGKAS, jangan bertele-tele."
+                f"Hari ini adalah {tgl_sekarang}. Jawab dengan sangat ringkas."
             )
             
             full_response = ""
@@ -141,15 +100,16 @@ if st.session_state.status == "bicara":
                     if chunk.choices[0].delta.content:
                         full_response += chunk.choices[0].delta.content
                         message_placeholder.markdown(full_response + "▌")
-                        time.sleep(0.03) # Kecepatan ketik stabil
                 konten_bicara = full_response
-            except Exception:
-                konten_bicara = f"Sekarang {str_waktu}. Ada lagi yang ingin ditanyakan?"
+            except Exception as e:
+                konten_bicara = "Maaf, Orochi sedang ada gangguan teknis. Bisa ulangi pertanyaannya?"
 
-        # Finalisasi
         message_placeholder.markdown(konten_bicara)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
-        time.sleep(1)
-        st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
+        # Logika transisi status
+        if "Sampai jumpa" in konten_bicara:
+            st.session_state.status = "tidur"
+        else:
+            st.session_state.status = "diam"
         st.rerun()
