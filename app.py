@@ -94,15 +94,15 @@ if st.session_state.status == "bicara":
                     full_response += chunk.choices[0].delta.content
             konten_bicara = full_response
 
-        # --- EFEK KETIK & SUARA SINKRON ---
+        # --- EFEK KETIK DIPERLAMBAT ---
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
         for sentence in sentences:
             play_chunk(sentence) # Suara keluar
-            for char in sentence + ". ": # Teks diketik per karakter
+            for char in sentence + ". ":
                 displayed_text += char
                 message_placeholder.markdown(displayed_text + "▌")
-                time.sleep(0.04)
+                time.sleep(0.08) # Diperlambat menjadi 0.08 detik per karakter
         
         message_placeholder.markdown(displayed_text)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
