@@ -6,47 +6,79 @@ import pytz
 from streamlit_js_eval import streamlit_js_eval
 from elevenlabs.client import ElevenLabs
 import base64
-from auth import render_auth_page # Mengimpor fungsi login/daftar
+from auth import render_auth_page  # Mengimpor logika login/daftar
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# --- INISIALISASI SESSION STATE ---
+# --- 2. INITIAL STATE ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "messages" not in st.session_state: st.session_state.messages = []
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# --- 2. LOGIKA LOGIN (Memanggil file auth.py) ---
+# --- LOGIKA AUTENTIKASI ---
 if not st.session_state.logged_in:
     render_auth_page()
-    st.stop() # Hentikan eksekusi jika belum login
+    st.stop()  # Hentikan eksekusi jika belum login
 
-# --- KODE OROCHI (Berjalan HANYA setelah login berhasil) ---
+# Jika sudah login, set pesan awal jika belum ada
 if not st.session_state.messages:
     st.session_state.messages = [{"role": "assistant", "content": f"Halo {st.session_state.user_name}! Orochi di sini. Ada yang bisa kubantu?"}]
 
+# --- FUNGSI TTS ELEVENLABS (DENGAN JEDA) ---
+def play_chunk(text):
+    """Mengubah teks menjadi audio per potongan dan memutarnya"""
+    try:
+        audio_stream = eleven_client.text_to_speech.convert(
+            text=text,
+            voice_id="EXAVITQu4vr4xnSDxMaL", 
+            model_id="eleven_multilingual_v2",
+            output_format="mp3_44100_128"
+        )
+        audio_data = b"".join(audio_stream)
+        b64 = base64.b64encode(audio_data).decode()
+        st.markdown(f'<audio autoplay="true" src="data:audio/mp3;base64,{b64}"></audio>', unsafe_allow_html=True)
+    except Exception:
+        pass
+
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
+st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
 # --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
+
 st.markdown(f"""
     <style>
     header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{
         visibility: hidden !important; display: none !important;
     }}
-    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover !important; background-position: center !important; background-attachment: fixed !important; }}
-    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
+    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('{gif_url}') !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
+        will-change: background-image;
+        backface-visibility: hidden;
+    }}
+    [data-testid="stChatMessageContent"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: white !important;
+    }}
     .stChatMessage {{ background-color: transparent !important; }}
     .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
+# --- 5. LOGIKA CHAT & PERSONA ---
 def get_avatar(role):
     return "templates/Orochi.png" if role == "assistant" else None
 
@@ -55,8 +87,20 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "bicara" if any(w in prompt.lower() for w in ["bye", "selamat tinggal"]) else "berfikir"
+    prompt_lower = prompt.lower()
+    if st.session_state.status == "tidur":
+        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.status = "bicara"
+        else:
+            st.warning("Orochi masih tidur. Bilang 'hallo' atau 'bangun' dulu ya.")
+            st.stop()
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
+            st.session_state.status = "bicara"
+        else:
+            st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
@@ -71,42 +115,47 @@ if st.session_state.status == "bicara":
         
         # Penentuan Konten
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
-            konten_bicara = f"Halo juga {st.session_state.user_name}! Orochi sudah bangun."
+            konten_bicara = f"Halo juga {st.session_state.user_name}! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = f"Oke {st.session_state.user_name}, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            system_prompt = f"Kamu adalah Orochi, AI ciptaan Irfan. Pengguna saat ini adalah {st.session_state.user_name}. Gunakan bahasa Indonesia ringkas."
+            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
+            system_prompt = (
+                f"Hari ini adalah {tgl_sekarang}. Pengguna adalah {st.session_state.user_name}. "
+                "Jika ditanya tentang Pancasila, WAJIB menjawab dengan teks resmi: 1. Ketuhanan Yang Maha Esa. "
+                "2. Kemanusiaan yang adil dan beradab. 3. Persatuan Indonesia. "
+                "4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan. "
+                "5. Keadilan sosial bagi seluruh rakyat Indonesia. Jawab dengan ringkas."
+            )
+            
             full_response = ""
             try:
                 stream = client.chat.completions.create(
                     messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
-                    model="llama-3.1-8b-instant", stream=True
+                    model="llama-3.1-8b-instant",
+                    stream=True
                 )
                 for chunk in stream:
                     if chunk.choices[0].delta.content:
                         full_response += chunk.choices[0].delta.content
                 konten_bicara = full_response
-            except: konten_bicara = "Maaf, ada kendala teknis."
+            except Exception:
+                konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
 
-        # Sinkronisasi TTS dan Teks
-        def play_chunk(text):
-            try:
-                audio = eleven_client.text_to_speech.convert(text=text, voice_id="EXAVITQu4vr4xnSDxMaL", model_id="eleven_multilingual_v2", output_format="mp3_44100_128")
-                b64 = base64.b64encode(b"".join(audio)).decode()
-                st.markdown(f'<audio autoplay="true" src="data:audio/mp3;base64,{b64}"></audio>', unsafe_allow_html=True)
-            except: pass
-
+        # --- EFEK KETIK & SUARA SINKRON ---
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
         for sentence in sentences:
-            play_chunk(sentence)
+            play_chunk(sentence) 
             for char in sentence + ". ":
                 displayed_text += char
                 message_placeholder.markdown(displayed_text + "▌")
-                time.sleep(0.05)
+                time.sleep(0.08)
         
         message_placeholder.markdown(displayed_text)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
+        
         time.sleep(1)
         st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
         st.rerun()
