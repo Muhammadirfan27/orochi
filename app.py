@@ -15,15 +15,16 @@ eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 # --- FUNGSI TTS ELEVENLABS ---
 def play_audio(text):
     try:
-        # Generate audio stream
-        audio_generator = eleven_client.generate(
+        # Menggunakan metode convert untuk versi elevenlabs 1.0.0+
+        audio_stream = eleven_client.text_to_speech.convert(
             text=text,
-            voice="Rachel", # Ganti dengan nama suara pilihan Anda di ElevenLabs
-            stream=True
+            voice_id="EXAVITQu4vr4xnSDxMaL", 
+            model_id="eleven_multilingual_v2",
+            output_format="mp3_44100_128"
         )
         
-        # Mengubah stream menjadi base64 untuk diputar di browser
-        audio_data = b"".join(audio_generator)
+        # Menggabungkan stream menjadi bytes
+        audio_data = b"".join(audio_stream)
         b64 = base64.b64encode(audio_data).decode()
         
         audio_html = f"""
@@ -35,6 +36,9 @@ def play_audio(text):
     except Exception as e:
         st.error(f"Error pada sistem suara: {e}")
 
+# --- 1. KONFIGURASI ---
+# (Struktur tetap sama)
+
 # --- 2. INITIAL STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 if "messages" not in st.session_state:
@@ -42,22 +46,39 @@ if "messages" not in st.session_state:
 
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
+st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
 # --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
+
 st.markdown(f"""
     <style>
-    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{ visibility: hidden !important; display: none !important; }}
-    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; background-position: center; }}
-    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
+        visibility: hidden !important; display: none !important;
+    }}
+    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('{gif_url}') !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
+        will-change: background-image;
+        backface-visibility: hidden;
+    }}
+    [data-testid="stChatMessageContent"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: white !important;
+    }}
     .stChatMessage {{ background-color: transparent !important; }}
     .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
+# --- 5. LOGIKA CHAT & PERSONA ---
 def get_avatar(role):
     return "templates/Orochi.png" if role == "assistant" else None
 
@@ -66,11 +87,20 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    if st.session_state.status == "tidur" and not any(w in prompt.lower() for w in ["hallo", "halo", "bangun"]):
-        st.warning("Orochi masih tidur, Irfan.")
-        st.stop()
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "bicara" if any(w in prompt.lower() for w in ["bye", "selamat tinggal"]) else "berfikir"
+    prompt_lower = prompt.lower()
+    if st.session_state.status == "tidur":
+        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.status = "bicara"
+        else:
+            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
+            st.stop()
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
+            st.session_state.status = "bicara"
+        else:
+            st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
@@ -81,27 +111,32 @@ if st.session_state.status == "berfikir":
 if st.session_state.status == "bicara":
     with st.chat_message("assistant", avatar=get_avatar("assistant")):
         message_placeholder = st.empty()
-        last_msg = st.session_state.messages[-1]["content"].lower()
+        last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        if any(w in last_msg for w in ["hallo", "halo", "bangun"]):
+        if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
-        elif any(w in last_msg for w in ["bye", "selamat tinggal"]):
+        elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
             tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
-            system_prompt = f"Hari ini {tgl_sekarang}. Jawab RINGKAS."
+            system_prompt = f"Hari ini adalah {tgl_sekarang}. Jawab dengan RINGKAS."
             
-            stream = client.chat.completions.create(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_msg}],
-                model="llama-3.1-8b-instant", stream=True
-            )
             full_response = ""
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    full_response += chunk.choices[0].delta.content
-                    message_placeholder.markdown(full_response + "▌")
-            konten_bicara = full_response
+            try:
+                stream = client.chat.completions.create(
+                    messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
+                    model="llama-3.1-8b-instant",
+                    stream=True
+                )
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        full_response += chunk.choices[0].delta.content
+                        message_placeholder.markdown(full_response + "▌")
+                        time.sleep(0.03)
+                konten_bicara = full_response
+            except Exception:
+                konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
 
         message_placeholder.markdown(konten_bicara)
         play_audio(konten_bicara)
