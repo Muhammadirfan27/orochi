@@ -83,7 +83,17 @@ if st.session_state.status == "bicara":
         else:
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
             tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
-            system_prompt = f"Hari ini {tgl_sekarang}. Jawab RINGKAS."
+            
+            # System Prompt dengan aturan baku untuk Pancasila
+            system_prompt = (
+                f"Hari ini {tgl_sekarang}. Jika ditanya tentang Pancasila, "
+                "WAJIB menjawab dengan teks resmi yang baku: "
+                "1. Ketuhanan Yang Maha Esa. 2. Kemanusiaan yang adil dan beradab. "
+                "3. Persatuan Indonesia. 4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan. "
+                "5. Keadilan sosial bagi seluruh rakyat Indonesia. "
+                "Jangan mengubah atau menafsirkan teks ini. Jawab dengan ringkas."
+            )
+            
             stream = client.chat.completions.create(
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_msg}],
                 model="llama-3.1-8b-instant", stream=True
@@ -94,7 +104,7 @@ if st.session_state.status == "bicara":
                     full_response += chunk.choices[0].delta.content
             konten_bicara = full_response
 
-        # --- EFEK KETIK DIPERLAMBAT ---
+        # --- EFEK KETIK & SUARA SINKRON ---
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
         for sentence in sentences:
@@ -102,7 +112,7 @@ if st.session_state.status == "bicara":
             for char in sentence + ". ":
                 displayed_text += char
                 message_placeholder.markdown(displayed_text + "▌")
-                time.sleep(0.08) # Diperlambat menjadi 0.08 detik per karakter
+                time.sleep(0.08)
         
         message_placeholder.markdown(displayed_text)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
