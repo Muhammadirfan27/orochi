@@ -3,3 +3,4 @@ groq
 pytz
 streamlit-js-eval
 gTTS
+elevenlabs
