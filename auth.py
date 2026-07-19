@@ -1,62 +1,56 @@
 import streamlit as st
 import requests
 
-# Masukkan URL Google Apps Script Anda di sini
 SHEET_URL = "URL_WEB_APP_ANDA_DISINI"
 
 def register_user(username, email, password):
     try:
-        res = requests.post(SHEET_URL, json={
-            "action": "register", 
-            "username": username, 
-            "email": email, 
-            "password": password
-        })
+        res = requests.post(SHEET_URL, json={"action": "register", "username": username, "email": email, "password": password})
         return res.status_code == 200
-    except:
-        return False
+    except: return False
 
 def check_login(username, password):
     try:
-        res = requests.post(SHEET_URL, json={
-            "action": "login", 
-            "username": username, 
-            "password": password
-        })
+        res = requests.post(SHEET_URL, json={"action": "login", "username": username, "password": password})
         return res.json().get("status") == "success"
-    except:
-        return False
+    except: return False
 
 def render_auth_page():
-    # CSS Modern untuk tampilan Card
+    # CSS Elegan dengan Efek Glassmorphism
     st.markdown("""
         <style>
-        .auth-card {
-            background-color: #1e1e2e;
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid #31333F;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        .main-container {
             max-width: 400px;
-            margin: auto;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
+        h2 { color: #ffffff; margin-bottom: 20px !important; }
+        .stTabs [data-baseweb="tab-list"] { justify-content: center; gap: 20px; }
+        .stTabs [data-baseweb="tab"] { color: #888; font-weight: bold; }
+        .stTabs [aria-selected="true"] { color: #ff4b4b !important; }
         .stButton>button {
             width: 100%;
-            border-radius: 8px;
+            border-radius: 50px;
             height: 3em;
-            background-color: #ff4b4b;
+            background: linear-gradient(90deg, #ff4b4b, #ff7b7b);
             color: white;
             font-weight: bold;
             border: none;
+            margin-top: 10px;
         }
-        .stButton>button:hover { background-color: #ff2b2b; }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🐍 Orochi AI Access</h2>", unsafe_allow_html=True)
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    st.markdown("<h2>🐍 Orochi AI</h2>", unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["🔐 Login", "📝 Daftar"])
+    tab1, tab2 = st.tabs(["Login", "Daftar"])
     
     with tab1:
         user_l = st.text_input("Username", key="u1")
