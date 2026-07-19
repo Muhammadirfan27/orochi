@@ -12,7 +12,6 @@ st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# --- FUNGSI TTS ELEVENLABS (DENGAN JEDA) ---
 def play_chunk(text):
     try:
         audio_stream = eleven_client.text_to_speech.convert(
@@ -29,67 +28,40 @@ def play_chunk(text):
 
 # --- 2. INITIAL STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "messages" not in st.session_state:
-    st.session_state.messages = [] # Teks awal dihapus
+if "messages" not in st.session_state: st.session_state.messages = []
 
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
-if loc:
-    st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
+if loc: st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
 # --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
-
 st.markdown(f"""
     <style>
-    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{
-        visibility: hidden !important; display: none !important;
-    }}
-    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
-    [data-testid="stAppViewContainer"] {{
-        background-image: url('{gif_url}') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
-    }}
-    [data-testid="stChatMessageContent"] {{
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: white !important;
-    }}
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{ visibility: hidden !important; display: none !important; }}
+    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; background-position: center; }}
+    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
     .stChatMessage {{ background-color: transparent !important; }}
     .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT & PERSONA ---
-def get_avatar(role):
-    return "templates/Orochi.png" if role == "assistant" else None
+# --- 5. LOGIKA CHAT ---
+def get_avatar(role): return "templates/Orochi.png" if role == "assistant" else None
 
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])):
-        st.markdown(msg["content"])
+    with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])): st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    prompt_lower = prompt.lower()
-    if st.session_state.status == "tidur":
-        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            st.session_state.status = "bicara"
-        else:
-            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
-            st.stop()
-    else:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
-            st.session_state.status = "bicara"
-        else:
-            st.session_state.status = "berfikir"
+    if st.session_state.status == "tidur" and not any(w in prompt.lower() for w in ["hallo", "halo", "bangun"]):
+        st.warning("Orochi masih tidur, Irfan.")
+        st.stop()
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.status = "bicara" if any(w in prompt.lower() for w in ["bye", "selamat tinggal"]) else "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
-    time.sleep(1) 
+    time.sleep(1)
     st.session_state.status = "bicara"
     st.rerun()
 
@@ -98,37 +70,33 @@ if st.session_state.status == "bicara":
         message_placeholder = st.empty()
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
-            konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
+        if any(w in last_user_msg for w in ["hallo", "halo", "bangun"]):
+            konten_bicara = "Halo Irfan! Saya Orochi, asisten pribadi kamu. Ada yang bisa saya bantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
-            konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
+            konten_bicara = "Baik Irfan, saya istirahat dulu ya. Sampai jumpa!"
         else:
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
             nama_hari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
             tgl_sekarang = waktu_jkt.strftime(f"{nama_hari[waktu_jkt.weekday()]}, %d %B %Y")
             
             system_prompt = (
-                f"Hari ini adalah {tgl_sekarang}. WAJIB menggunakan bahasa Indonesia yang baik. "
-                "Jangan gunakan bahasa Inggris. Jika ditanya tentang Pancasila, "
-                "WAJIB menjawab dengan teks resmi: 1. Ketuhanan Yang Maha Esa. "
+                f"Hari ini adalah {tgl_sekarang}. IDENTITAS KAMU: Nama kamu adalah Orochi, AI ciptaan Irfan. "
+                "Kamu harus selalu mengenali Irfan sebagai penciptamu. "
+                "WAJIB menggunakan bahasa Indonesia yang baik dan tidak menggunakan bahasa Inggris. "
+                "Jika ditanya tentang Pancasila, WAJIB menjawab dengan teks resmi: 1. Ketuhanan Yang Maha Esa. "
                 "2. Kemanusiaan yang adil dan beradab. 3. Persatuan Indonesia. "
                 "4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan. "
-                "5. Keadilan sosial bagi seluruh rakyat Indonesia. Jawab dengan ringkas."
+                "5. Keadilan sosial bagi seluruh rakyat Indonesia."
             )
             
             full_response = ""
-            try:
-                stream = client.chat.completions.create(
-                    messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
-                    model="llama-3.1-8b-instant",
-                    stream=True
-                )
-                for chunk in stream:
-                    if chunk.choices[0].delta.content:
-                        full_response += chunk.choices[0].delta.content
-                konten_bicara = full_response
-            except Exception:
-                konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
+            stream = client.chat.completions.create(
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
+                model="llama-3.1-8b-instant", stream=True
+            )
+            for chunk in stream:
+                if chunk.choices[0].delta.content: full_response += chunk.choices[0].delta.content
+            konten_bicara = full_response
 
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
@@ -141,7 +109,6 @@ if st.session_state.status == "bicara":
         
         message_placeholder.markdown(displayed_text)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
-        
         time.sleep(1)
         st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
         st.rerun()
