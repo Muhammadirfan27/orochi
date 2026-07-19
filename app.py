@@ -4,6 +4,25 @@ from groq import Groq
 from datetime import datetime
 import pytz
 from streamlit_js_eval import streamlit_js_eval
+from gtts import gTTS
+import base64
+
+# --- FUNGSI TTS ---
+def play_audio(text):
+    try:
+        tts = gTTS(text=text, lang='id')
+        tts.save("response.mp3")
+        with open("response.mp3", "rb") as audio_file:
+            audio_bytes = audio_file.read()
+        b64 = base64.b64encode(audio_bytes).decode()
+        audio_html = f"""
+            <audio autoplay="true">
+            <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+        """
+        st.markdown(audio_html, unsafe_allow_html=True)
+    except Exception as e:
+        pass
 
 # --- 1. KONFIGURASI ---
 st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
@@ -66,8 +85,6 @@ st.markdown(f"""
 # --- AVATAR KUSTOM (PERBAIKAN) ---
 def get_avatar(role):
     if role == "assistant":
-        # Gunakan path relatif atau URL yang bisa diakses web
-        # Pastikan file ada di folder tersebut dan bisa diakses publik
         return "templates/Orochi.png" 
     return None
 
@@ -113,12 +130,8 @@ if st.session_state.status == "bicara":
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-          # AMBIL WAKTU SEKARANG SECARA STATIS
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
             tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
-            
-            # PROMPT PERINTAH TEGAS (HARD CONSTRAINT)
-            # Kita berikan data hari ini dan melarang AI menghitung sendiri
             system_prompt = (
                 f"Hari ini adalah {tgl_sekarang}. "
                 "JANGAN PERNAH mencoba menghitung hari atau tanggal sendiri. "
@@ -141,13 +154,17 @@ if st.session_state.status == "bicara":
                     if chunk.choices[0].delta.content:
                         full_response += chunk.choices[0].delta.content
                         message_placeholder.markdown(full_response + "▌")
-                        time.sleep(0.03) # Kecepatan ketik stabil
+                        time.sleep(0.03)
                 konten_bicara = full_response
             except Exception:
-                konten_bicara = f"Sekarang {str_waktu}. Ada lagi yang ingin ditanyakan?"
+                konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
 
         # Finalisasi
         message_placeholder.markdown(konten_bicara)
+        
+        # Panggil fungsi suara
+        play_audio(konten_bicara)
+        
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         
         time.sleep(1)
