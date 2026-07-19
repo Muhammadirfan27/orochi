@@ -30,10 +30,7 @@ def play_chunk(text):
 
 # --- 2. INITIAL STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
-if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Halo Irfan! Orochi di sini. Ada yang bisa kubantu?"}]
-
-# --- 3. LOKASI ---
+ LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
