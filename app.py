@@ -41,9 +41,21 @@ if loc:
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 st.markdown(f"""
     <style>
-    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{ visibility: hidden !important; display: none !important; }}
-    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; background-position: center; }}
-    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
+    /* Sembunyikan elemen default dan hilangkan semua garis pembatas */
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{
+        visibility: hidden !important; 
+        display: none !important;
+    }}
+    [data-testid="stAppViewContainer"] {{ 
+        background-image: url('{gif_url}') !important; 
+        background-size: cover; 
+        background-position: center; 
+    }}
+    [data-testid="stChatMessageContent"] {{ 
+        background-color: transparent !important; 
+        color: white !important; 
+        border: none !important; 
+    }}
     .stChatMessage {{ background-color: transparent !important; }}
     .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
