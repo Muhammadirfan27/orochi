@@ -16,7 +16,7 @@ eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 # --- FUNGSI GOOGLE SHEETS ---
 def simpan_ke_sheet(nama, email):
     # GANTI URL_WEB_APP_ANDA_DISINI dengan URL dari Deployment Apps Script Anda
-    url = "https://script.google.com/macros/s/AKfycbxIsDKc_bvzoXgVo8Gfn3Lonnq60ZErZ1puCLRMfnFKG_tScvKM50YKcaYY7wT85ZV2/exec" 
+    url = "https://script.google.com/macros/s/AKfycbxpYgB0dgiGjOhRiktL0mYo7RQaQZ9jxSH4XoRDy1wn1PLkh3lShqRBAaIpjsIm0T3-/exec" 
     data = {"name": nama, "email": email}
     try:
         requests.post(url, json=data)
