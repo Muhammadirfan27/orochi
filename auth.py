@@ -1,39 +1,40 @@
 import streamlit as st
 
 def render_auth_page():
-    # CSS Khusus untuk meniru gaya referensi Anda
+    # CSS untuk memaksa tampilan bersih dengan latar putih
     st.markdown("""
         <style>
-        .login-box {
-            max-width: 350px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            color: #555;
-            font-family: sans-serif;
-        }
+        /* Paksa area utama menjadi putih agar mirip referensi */
+        .block-container { background-color: #ffffff !important; padding: 2rem; border-radius: 10px; max-width: 400px; margin: auto; }
+        
+        /* Styling logo bulat */
         .logo-circle {
-            width: 80px; height: 80px; background: #f39c12; border-radius: 50%;
+            width: 90px; height: 90px; background: #e67e22; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 15px; color: white; font-size: 30px; font-weight: bold;
-            border: 3px solid #eee;
+            margin: 0 auto 15px; color: white; font-size: 35px; font-weight: bold;
+            border: 2px solid #ccc;
         }
-        .btn-full { width: 100%; border: none; padding: 10px; color: white; margin-bottom: 5px; cursor: pointer; border-radius: 2px; }
-        .btn-login { background-color: #2980b9; }
-        .btn-register { background-color: #bdc3c7; }
-        .divider { text-align: center; margin: 15px 0; border-bottom: 1px solid #ddd; line-height: 0.1em; color: #777; }
+        
+        /* Tombol-tombol */
+        div.stButton > button { width: 100%; border: none; padding: 10px; color: white; font-weight: bold; border-radius: 2px; }
+        .btn-login { background-color: #2980b9 !important; }
+        .btn-register { background-color: #bdc3c7 !important; }
+        
+        /* Pemisah 'atau' */
+        .divider { text-align: center; margin: 20px 0; border-bottom: 1px solid #ddd; line-height: 0.1em; color: #777; }
         .divider span { background: #fff; padding: 0 10px; }
-        .social-btn { display: block; width: 100%; padding: 10px; color: white; text-decoration: none; margin-bottom: 5px; text-align: left; padding-left: 20px; font-weight: bold; }
+        
+        /* Tombol Sosial */
+        .soc-fb { background: #3b5998 !important; }
+        .soc-go { background: #dd4b39 !important; }
+        .soc-ya { background: #8e44ad !important; }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    # Rendering elemen
     st.markdown('<div class="logo-circle">{J}</div>', unsafe_allow_html=True)
-    st.markdown('<h2 style="text-align:center; color:#555;">Login ke akun Anda</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="text-align:center; color:#333;">Login ke akun Anda</h2>', unsafe_allow_html=True)
     
-    # Input field
     st.text_input("Email", placeholder="Email", key="email")
     st.text_input("Password", type="password", placeholder="Password", key="pass")
     
@@ -41,16 +42,18 @@ def render_auth_page():
     with col1: st.checkbox("Biarkan tetap masuk")
     with col2: st.markdown("[Lupa Password?](#)")
     
-    # Tombol Utama
-    if st.button("Login", type="primary", use_container_width=True): pass
-    if st.button("Register", use_container_width=True): pass
+    # Tombol dengan class kustom
+    st.markdown('<div class="btn-login">', unsafe_allow_html=True)
+    if st.button("Login", key="btn1"): pass
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Divider
+    st.markdown('<div class="btn-register">', unsafe_allow_html=True)
+    if st.button("Register", key="btn2"): pass
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     st.markdown('<p class="divider"><span>atau</span></p>', unsafe_allow_html=True)
     
-    # Social Buttons
-    st.markdown('<a href="#" class="social-btn" style="background:#3b5998;">f | Login dengan Facebook</a>', unsafe_allow_html=True)
-    st.markdown('<a href="#" class="social-btn" style="background:#db4437;">G | Login dengan Google</a>', unsafe_allow_html=True)
-    st.markdown('<a href="#" class="social-btn" style="background:#8e44ad;">Y | Login dengan Yahoo</a>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Tombol Sosial
+    st.markdown('<div class="soc-fb"><button class="stButton" style="width:100%; color:white; border:none; padding:10px;">f | Login dengan Facebook</button></div>', unsafe_allow_html=True)
+    st.markdown('<div class="soc-go"><button class="stButton" style="width:100%; color:white; border:none; padding:10px;">G | Login dengan Google</button></div>', unsafe_allow_html=True)
+    st.markdown('<div class="soc-ya"><button class="stButton" style="width:100%; color:white; border:none; padding:10px;">Y | Login dengan Yahoo</button></div>', unsafe_allow_html=True)
