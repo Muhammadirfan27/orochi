@@ -1,15 +1,25 @@
-
 import streamlit as st
 import requests
 
 SHEET_URL = "URL_WEB_APP_ANDA_DISINI"
 
-def register_user(name, email):
-    res = requests.post(SHEET_URL, json={"action": "register", "name": name, "email": email})
+def register_user(username, email, password):
+    # Mengirim data pendaftaran ke Google Sheets
+    res = requests.post(SHEET_URL, json={
+        "action": "register", 
+        "username": username, 
+        "email": email, 
+        "password": password
+    })
     return res.status_code == 200
 
-def check_login(name, email):
-    res = requests.post(SHEET_URL, json={"action": "login", "name": name, "email": email})
+def check_login(username, password):
+    # Mengecek username dan password
+    res = requests.post(SHEET_URL, json={
+        "action": "login", 
+        "username": username, 
+        "password": password
+    })
     return res.json().get("status") == "success"
 
 def render_auth_page():
@@ -17,19 +27,20 @@ def render_auth_page():
     tab1, tab2 = st.tabs(["Login", "Daftar"])
     
     with tab1:
-        name_l = st.text_input("Nama (Login):", key="n1")
-        email_l = st.text_input("Email (Login):", key="e1")
+        user_l = st.text_input("Username (Login):")
+        pass_l = st.text_input("Password (Login):", type="password")
         if st.button("Masuk"):
-            if check_login(name_l, email_l):
+            if check_login(user_l, pass_l):
                 st.session_state.logged_in = True
-                st.session_state.user_name = name_l
+                st.session_state.user_name = user_l
                 st.rerun()
-            else: st.error("Data tidak ditemukan!")
+            else: st.error("Username atau Password salah!")
             
     with tab2:
-        name_r = st.text_input("Nama (Daftar):", key="n2")
-        email_r = st.text_input("Email (Daftar):", key="e2")
+        user_r = st.text_input("Username (Daftar):")
+        email_r = st.text_input("Gmail (Daftar):")
+        pass_r = st.text_input("Password (Daftar):", type="password")
         if st.button("Daftar"):
-            if register_user(name_r, email_r):
-                st.success("Berhasil daftar! Silakan Login.")
-            else: st.error("Gagal.")
+            if register_user(user_r, email_r, pass_r):
+                st.success("Akun berhasil dibuat! Silakan pindah ke tab Login.")
+            else: st.error("Gagal mendaftar.")
