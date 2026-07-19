@@ -10,18 +10,20 @@ import base64
 # --- FUNGSI TTS ---
 def play_audio(text):
     try:
+        # Menggunakan gTTS untuk generate suara
         tts = gTTS(text=text, lang='id')
         tts.save("response.mp3")
         with open("response.mp3", "rb") as audio_file:
             audio_bytes = audio_file.read()
         b64 = base64.b64encode(audio_bytes).decode()
+        # Menggunakan autostart agar langsung berbunyi setelah teks tampil
         audio_html = f"""
             <audio autoplay="true">
             <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
             </audio>
         """
         st.markdown(audio_html, unsafe_allow_html=True)
-    except Exception as e:
+    except Exception:
         pass
 
 # --- 1. KONFIGURASI ---
@@ -35,138 +37,70 @@ if "messages" not in st.session_state:
 
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
-st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
-# --- 4. CSS DENGAN PATH YANG BENAR & CHAT TRANSPARAN ---
+# --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
-
 st.markdown(f"""
     <style>
-    /* 1. Sembunyikan elemen default */
-    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{
-        visibility: hidden !important; display: none !important;
-    }}
-    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
-    
-    /* 2. Set Background */
-    [data-testid="stAppViewContainer"] {{
-        background-image: url('{gif_url}') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
-        will-change: background-image;
-        backface-visibility: hidden;
-    }}
-    
-    /* 3. Menghilangkan Kotak Chat */
-    [data-testid="stChatMessageContent"] {{
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: white !important;
-    }}
-    
-    .stChatMessage {{
-        background-color: transparent !important;
-    }}
-
-    /* 4. Menghilangkan background container utama */
-    .block-container {{ 
-        padding-top: 2rem !important; 
-        background: transparent !important; 
-    }}
+    header, footer, .stAppToolbar {{ visibility: hidden !important; }}
+    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; }}
+    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT & PERSONA ---
-
-# --- AVATAR KUSTOM (PERBAIKAN) ---
+# --- 5. LOGIKA CHAT ---
 def get_avatar(role):
-    if role == "assistant":
-        return "templates/Orochi.png" 
-    return None
+    return "templates/Orochi.png" if role == "assistant" else None
 
-# 1. Tampilkan riwayat chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])):
         st.markdown(msg["content"])
 
-# 2. Input User
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    prompt_lower = prompt.lower()
-    
-    if st.session_state.status == "tidur":
-        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            st.session_state.status = "bicara"
-        else:
-            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
-            st.stop()
-    else:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
-            st.session_state.status = "bicara"
-        else:
-            st.session_state.status = "berfikir"
+    if st.session_state.status == "tidur" and not any(w in prompt.lower() for w in ["hallo", "halo", "bangun"]):
+        st.warning("Orochi masih tidur, Irfan.")
+        st.stop()
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.status = "bicara" if any(w in prompt.lower() for w in ["bye", "selamat tinggal"]) else "berfikir"
     st.rerun()
 
-# 3. Logika Transisi
 if st.session_state.status == "berfikir":
     time.sleep(1) 
     st.session_state.status = "bicara"
     st.rerun()
 
-# 4. Mode Bicara
 if st.session_state.status == "bicara":
     with st.chat_message("assistant", avatar=get_avatar("assistant")):
         message_placeholder = st.empty()
-        last_user_msg = st.session_state.messages[-1]["content"].lower()
+        last_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Penentuan Konten Manual
-        if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
+        # Penentuan Konten
+        if any(w in last_msg for w in ["hallo", "halo", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
-        elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
+        elif any(w in last_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
-            system_prompt = (
-                f"Hari ini adalah {tgl_sekarang}. "
-                "JANGAN PERNAH mencoba menghitung hari atau tanggal sendiri. "
-                "Jika ditanya hari ini, jawab persis: " + tgl_sekarang + ". "
-                "Jika ditanya kemarin, jawab hari sebelumnya secara tepat. "
-                "Jawab dengan SANGAT RINGKAS, jangan bertele-tele."
+            # Generate Jawaban
+            stream = client.chat.completions.create(
+                messages=[{"role": "user", "content": last_msg}],
+                model="llama-3.1-8b-instant", stream=True
             )
-            
             full_response = ""
-            try:
-                stream = client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": last_user_msg}
-                    ],
-                    model="llama-3.1-8b-instant",
-                    stream=True
-                )
-                for chunk in stream:
-                    if chunk.choices[0].delta.content:
-                        full_response += chunk.choices[0].delta.content
-                        message_placeholder.markdown(full_response + "▌")
-                        time.sleep(0.03)
-                konten_bicara = full_response
-            except Exception:
-                konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    full_response += chunk.choices[0].delta.content
+                    message_placeholder.markdown(full_response + "▌")
+            konten_bicara = full_response
 
-        # Finalisasi
+        # Tampilkan teks utuh tanpa kursor
         message_placeholder.markdown(konten_bicara)
         
-        # Panggil fungsi suara
+        # Baru setelah teks tampil penuh, panggil suara
         play_audio(konten_bicara)
         
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
-        
         time.sleep(1)
         st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
         st.rerun()
