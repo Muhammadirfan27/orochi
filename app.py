@@ -12,7 +12,9 @@ st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
+# --- FUNGSI TTS ELEVENLABS (DENGAN JEDA) ---
 def play_chunk(text):
+    """Mengubah teks menjadi audio per potongan dan memutarnya"""
     try:
         audio_stream = eleven_client.text_to_speech.convert(
             text=text,
@@ -36,28 +38,51 @@ if loc: st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, 
 
 # --- 4. CSS ---
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
+
 st.markdown(f"""
     <style>
-    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{ visibility: hidden !important; display: none !important; }}
-    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; background-position: center; }}
-    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr, .stMarkdown hr, div.stMarkdown > hr {{
+        visibility: hidden !important; display: none !important;
+    }}
+    iframe {{ width: 1px !important; height: 1px !important; opacity: 0 !important; position: absolute !important; pointer-events: none !important; }}
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('{gif_url}') !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
+    }}
+    [data-testid="stChatMessageContent"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: white !important;
+    }}
     .stChatMessage {{ background-color: transparent !important; }}
     .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. LOGIKA CHAT ---
+# --- 5. LOGIKA CHAT & PERSONA ---
 def get_avatar(role): return "templates/Orochi.png" if role == "assistant" else None
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=get_avatar(msg["role"])): st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ngobrol santai sama Orochi..."):
-    if st.session_state.status == "tidur" and not any(w in prompt.lower() for w in ["hallo", "halo", "bangun"]):
-        st.warning("Orochi masih tidur, Irfan.")
-        st.stop()
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.session_state.status = "bicara" if any(w in prompt.lower() for w in ["bye", "selamat tinggal"]) else "berfikir"
+    prompt_lower = prompt.lower()
+    if st.session_state.status == "tidur":
+        if any(word in prompt_lower for word in ["hallo", "halo", "hai", "bangun"]):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.status = "bicara"
+        else:
+            st.warning("Orochi masih tidur, Irfan. Bilang 'hallo' atau 'bangun' dulu ya.")
+            st.stop()
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        if any(word in prompt_lower for word in ["bye", "selamat tinggal"]):
+            st.session_state.status = "bicara"
+        else:
+            st.session_state.status = "berfikir"
     st.rerun()
 
 if st.session_state.status == "berfikir":
@@ -80,23 +105,27 @@ if st.session_state.status == "bicara":
             tgl_sekarang = waktu_jkt.strftime(f"{nama_hari[waktu_jkt.weekday()]}, %d %B %Y")
             
             system_prompt = (
-                f"Hari ini adalah {tgl_sekarang}. IDENTITAS KAMU: Nama kamu adalah Orochi, AI ciptaan Irfan. "
+                f"Hari ini adalah {tgl_sekarang}. "
+                "IDENTITAS KAMU: Nama kamu adalah Orochi, sebuah AI yang diciptakan oleh Irfan. "
                 "Kamu harus selalu mengenali Irfan sebagai penciptamu. "
-                "WAJIB menggunakan bahasa Indonesia yang baik dan tidak menggunakan bahasa Inggris. "
-                "Jika ditanya tentang Pancasila, WAJIB menjawab dengan teks resmi: 1. Ketuhanan Yang Maha Esa. "
-                "2. Kemanusiaan yang adil dan beradab. 3. Persatuan Indonesia. "
+                "WAJIB menggunakan bahasa Indonesia yang baik dan benar. JANGAN gunakan bahasa Inggris. "
+                "Jika ditanya tentang Pancasila, WAJIB menjawab dengan teks resmi: "
+                "1. Ketuhanan Yang Maha Esa. 2. Kemanusiaan yang adil dan beradab. 3. Persatuan Indonesia. "
                 "4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan. "
                 "5. Keadilan sosial bagi seluruh rakyat Indonesia."
             )
             
             full_response = ""
-            stream = client.chat.completions.create(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
-                model="llama-3.1-8b-instant", stream=True
-            )
-            for chunk in stream:
-                if chunk.choices[0].delta.content: full_response += chunk.choices[0].delta.content
-            konten_bicara = full_response
+            try:
+                stream = client.chat.completions.create(
+                    messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_user_msg}],
+                    model="llama-3.1-8b-instant", stream=True
+                )
+                for chunk in stream:
+                    if chunk.choices[0].delta.content: full_response += chunk.choices[0].delta.content
+                konten_bicara = full_response
+            except Exception:
+                konten_bicara = "Maaf Irfan, saya sedang mengalami kendala teknis."
 
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
