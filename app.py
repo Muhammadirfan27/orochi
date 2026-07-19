@@ -14,7 +14,6 @@ eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
 # --- FUNGSI TTS ELEVENLABS (DENGAN JEDA) ---
 def play_chunk(text):
-    """Mengubah teks menjadi audio per potongan dan memutarnya"""
     try:
         audio_stream = eleven_client.text_to_speech.convert(
             text=text,
@@ -31,11 +30,10 @@ def play_chunk(text):
 # --- 2. INITIAL STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Halo Irfan! Orochi di sini. Ada yang bisa kubantu?"}]
+    st.session_state.messages = [] # Teks awal dihapus
 
 # --- 3. LOKASI ---
 loc = streamlit_js_eval(js_expressions='navigator.geolocation.getCurrentPosition((pos) => {window.parent.postMessage({lat: pos.coords.latitude, lon: pos.coords.longitude}, "*")})', want_output=True, key='loc')
-st.session_state.lokasi_tersimpan = "Panongan, Tangerang"
 if loc:
     st.session_state.lokasi_tersimpan = f"Lat: {loc['coords']['latitude']}, Lon: {loc['coords']['longitude']}"
 
@@ -53,8 +51,6 @@ st.markdown(f"""
         background-size: cover !important;
         background-position: center !important;
         background-attachment: fixed !important;
-        will-change: background-image;
-        backface-visibility: hidden;
     }}
     [data-testid="stChatMessageContent"] {{
         background-color: transparent !important;
@@ -102,16 +98,18 @@ if st.session_state.status == "bicara":
         message_placeholder = st.empty()
         last_user_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Penentuan Konten
         if any(w in last_user_msg for w in ["hallo", "halo", "hai", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_user_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
             waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
-            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
+            nama_hari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+            tgl_sekarang = waktu_jkt.strftime(f"{nama_hari[waktu_jkt.weekday()]}, %d %B %Y")
+            
             system_prompt = (
-                f"Hari ini adalah {tgl_sekarang}. Jika ditanya tentang Pancasila, "
+                f"Hari ini adalah {tgl_sekarang}. WAJIB menggunakan bahasa Indonesia yang baik. "
+                "Jangan gunakan bahasa Inggris. Jika ditanya tentang Pancasila, "
                 "WAJIB menjawab dengan teks resmi: 1. Ketuhanan Yang Maha Esa. "
                 "2. Kemanusiaan yang adil dan beradab. 3. Persatuan Indonesia. "
                 "4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan. "
@@ -132,15 +130,14 @@ if st.session_state.status == "bicara":
             except Exception:
                 konten_bicara = "Maaf, Orochi lagi ada kendala teknis."
 
-        # --- EFEK KETIK & SUARA SINKRON ---
         sentences = [s.strip() for s in konten_bicara.replace('!', '.').replace('?', '.').split('.') if s.strip()]
         displayed_text = ""
         for sentence in sentences:
-            play_chunk(sentence) # Suara per kalimat
+            play_chunk(sentence)
             for char in sentence + ". ":
                 displayed_text += char
                 message_placeholder.markdown(displayed_text + "▌")
-                time.sleep(0.08) # Kecepatan ketikan agar sinkron dengan suara
+                time.sleep(0.08)
         
         message_placeholder.markdown(displayed_text)
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
