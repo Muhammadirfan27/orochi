@@ -4,31 +4,36 @@ from groq import Groq
 from datetime import datetime
 import pytz
 from streamlit_js_eval import streamlit_js_eval
-from gtts import gTTS
+from elevenlabs.client import ElevenLabs
 import base64
 
-# --- FUNGSI TTS ---
+# --- INISIALISASI ---
+st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+eleven_client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
+
+# --- FUNGSI TTS ELEVENLABS ---
 def play_audio(text):
     try:
-        # Menggunakan gTTS untuk generate suara
-        tts = gTTS(text=text, lang='id')
-        tts.save("response.mp3")
-        with open("response.mp3", "rb") as audio_file:
-            audio_bytes = audio_file.read()
-        b64 = base64.b64encode(audio_bytes).decode()
-        # Menggunakan autostart agar langsung berbunyi setelah teks tampil
+        # Generate audio stream
+        audio_generator = eleven_client.generate(
+            text=text,
+            voice="Rachel", # Ganti dengan nama suara pilihan Anda di ElevenLabs
+            stream=True
+        )
+        
+        # Mengubah stream menjadi base64 untuk diputar di browser
+        audio_data = b"".join(audio_generator)
+        b64 = base64.b64encode(audio_data).decode()
+        
         audio_html = f"""
             <audio autoplay="true">
             <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
             </audio>
         """
         st.markdown(audio_html, unsafe_allow_html=True)
-    except Exception:
-        pass
-
-# --- 1. KONFIGURASI ---
-st.set_page_config(page_title="Orochi AI", page_icon="🐍", layout="centered")
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+    except Exception as e:
+        st.error(f"Error pada sistem suara: {e}")
 
 # --- 2. INITIAL STATE ---
 if "status" not in st.session_state: st.session_state.status = "diam"
@@ -44,9 +49,11 @@ if loc:
 gif_url = f"https://raw.githubusercontent.com/Muhammadirfan27/orochi/main/templates/Orochi_{st.session_state.status}.gif"
 st.markdown(f"""
     <style>
-    header, footer, .stAppToolbar {{ visibility: hidden !important; }}
-    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; }}
-    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; }}
+    header, footer, #MainMenu, .stAppToolbar, [data-testid="stHeader"], hr {{ visibility: hidden !important; display: none !important; }}
+    [data-testid="stAppViewContainer"] {{ background-image: url('{gif_url}') !important; background-size: cover; background-position: center; }}
+    [data-testid="stChatMessageContent"] {{ background-color: transparent !important; color: white !important; border: none !important; }}
+    .stChatMessage {{ background-color: transparent !important; }}
+    .block-container {{ padding-top: 2rem !important; background: transparent !important; }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -76,15 +83,17 @@ if st.session_state.status == "bicara":
         message_placeholder = st.empty()
         last_msg = st.session_state.messages[-1]["content"].lower()
         
-        # Penentuan Konten
         if any(w in last_msg for w in ["hallo", "halo", "bangun"]):
             konten_bicara = "Halo juga Irfan! Orochi sudah bangun. Ada yang bisa dibantu?"
         elif any(w in last_msg for w in ["bye", "selamat tinggal"]):
             konten_bicara = "Oke Irfan, Orochi istirahat dulu ya. Sampai jumpa!"
         else:
-            # Generate Jawaban
+            waktu_jkt = datetime.now(pytz.timezone('Asia/Jakarta'))
+            tgl_sekarang = waktu_jkt.strftime("%A, %d %B %Y")
+            system_prompt = f"Hari ini {tgl_sekarang}. Jawab RINGKAS."
+            
             stream = client.chat.completions.create(
-                messages=[{"role": "user", "content": last_msg}],
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": last_msg}],
                 model="llama-3.1-8b-instant", stream=True
             )
             full_response = ""
@@ -94,12 +103,8 @@ if st.session_state.status == "bicara":
                     message_placeholder.markdown(full_response + "▌")
             konten_bicara = full_response
 
-        # Tampilkan teks utuh tanpa kursor
         message_placeholder.markdown(konten_bicara)
-        
-        # Baru setelah teks tampil penuh, panggil suara
         play_audio(konten_bicara)
-        
         st.session_state.messages.append({"role": "assistant", "content": konten_bicara})
         time.sleep(1)
         st.session_state.status = "tidur" if "Sampai jumpa" in konten_bicara else "diam"
